@@ -173,30 +173,28 @@ func (hwConfig *HWConfig) Create() error {
 		return err
 	}
 
+	if b, err := pathutil.IsPathExists(encryptionKeySourcePath); err == nil && b {
+		if err := copyFile(encryptionKeySourcePath, encryptionKeyTargetPath); err != nil {
+			return err
+		}
+	}
+
 	version, err := strconv.Atoi(hwConfig.Version)
 	if err != nil {
 		return err
 	}
 
-	if hwConfig.Locale != "en-US" {
-		if version >= 23 {
-			data, err := fileutil.ReadBytesFromFile(systemTargetPath)
-			if err != nil {
-				return err
-			}
+	if hwConfig.Locale != "en-US" && version >= 23 {
+		data, err := fileutil.ReadBytesFromFile(systemTargetPath)
+		if err != nil {
+			return err
+		}
 
-			data = bytes.Replace(data, []byte("ro.product.locale=en-US"), []byte(fmt.Sprintf("ro.product.locale=%s", hwConfig.Locale)), -1)
+		data = bytes.Replace(data, []byte("ro.product.locale=en-US"), []byte(fmt.Sprintf("ro.product.locale=%s", hwConfig.Locale)), -1)
 
-			err = fileutil.WriteBytesToFile(systemTargetPath, data)
-			if err != nil {
-				return err
-			}
-
-			if b, err := pathutil.IsPathExists(encryptionKeySourcePath); err == nil && b {
-				if err := copyFile(encryptionKeySourcePath, encryptionKeyTargetPath); err != nil {
-					return err
-				}
-			}
+		err = fileutil.WriteBytesToFile(systemTargetPath, data)
+		if err != nil {
+			return err
 		}
 	}
 

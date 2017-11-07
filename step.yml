@@ -35,7 +35,7 @@ deps:
     bin_name: go
 toolkit:
   go:
-    package_name: github.com/bitrise-steplib/step-template-go
+    package_name: github.com/bitrise-steplib/steps-avd-manager
 run_if: ""
 inputs:
   - version: 26

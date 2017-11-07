@@ -24,14 +24,6 @@ workflows:
         - is_create_path: true
     - path::./:
         title: Step Test
-        description: |-
-          The example input has a default value,
-          you can overwrite it if you want to, just like we did below,
-          but the step would use the default value specified in the `step.yml`
-          file if you would not specify another value.
-        run_if: true
-        inputs:
-        - example_step_input: Example Step Input's value
 
   go-tests:
     before_run:
@@ -101,6 +93,8 @@ workflows:
             #!/bin/bash
             set -ex
             go get -u -v github.com/tools/godep
+            go get -u -v github.com/davecgh/go-spew/spew
+            go get -u -v github.com/pmezard/go-difflib/difflib
             rm -rf ./Godeps
             rm -rf ./vendor
             go get -t -d ./...

@@ -7,7 +7,7 @@ THIS_SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 tmp_gopath_dir="$(mktemp -d)"
 
-go_package_name="github.com/bitrise-steplib/step-template-go"
+go_package_name="github.com/bitrise-steplib/steps-avd-manager"
 full_package_path="${tmp_gopath_dir}/src/${go_package_name}"
 mkdir -p "${full_package_path}"
 
