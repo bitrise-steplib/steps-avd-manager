@@ -40,6 +40,7 @@ run_if: ""
 inputs:
   - version: 26
     opts:
+      category: Android OS
       title: "Version"
       summary: The device will run with the specified version of android.
       description: The device will run with the specified version of android.
@@ -47,6 +48,7 @@ inputs:
       is_required: true
   - orientation: portrait
     opts:
+      category: Device
       title: "Orientation"
       summary: Set the device to the selected orientation.
       description: Set the device to the selected orientation.
@@ -57,6 +59,7 @@ inputs:
       - landscape
   - locale: en-US
     opts:
+      category: Android OS
       title: "Locale"
       summary: Set the language and region of the device.
       description: Set the language and region of the device.
@@ -64,6 +67,7 @@ inputs:
       is_required: true
   - resolution: 720x1280
     opts:
+      category: Device
       title: "Resolution"
       summary: Set the device's display resolution.
       description: Set the device's display resolution.
@@ -71,13 +75,57 @@ inputs:
       is_required: true
   - emulator_id: "emulator"
     opts:
+      category: Debug
       title: "ID"
       summary: Set the device's ID. (This will be the name under $HOME/.android/avd/)
       description: Set the device's ID. (This will be the name under $HOME/.android/avd/)
       is_expand: true
       is_required: true
+  - custom_hw_config: 
+    opts:
+      category: Debug
+      title: "Custom hardware config"
+      summary: |-
+        Will append, replace or remove your config entries to the default device hardware config.
+
+        Usage: one config per line in the format `key=value`
+
+        For example: `hw.gpu.enabled=false`
+
+        Append:
+
+        If the given `key` is not in the config already, it will be added.
+
+        Remove:
+
+        Set your key without value, for example: `key=`. It will be removed from the default device config.
+
+        Replace:
+
+        If the given `key` is already in the config, the `value` will be replaced.
+      description: |-
+        Will append, replace or remove your config entries to the default device hardware config.
+
+        Usage: one config per line in the format `key=value`
+
+        For example: `hw.gpu.enabled=false`
+
+        Append:
+
+        If the given `key` is not in the config already, it will be added.
+
+        Remove:
+
+        Set your key without value, for example: `key=`. It will be removed from the default device config.
+
+        Replace:
+
+        If the given `key` is already in the config, the `value` will be replaced.
+      is_expand: true
+      is_required: false
   - tag: google_apis
     opts:
+      category: Android OS
       title: "Tag"
       summary: Select OS tag to have the required toolset on the device.
       description: Select OS tag to have the required toolset on the device.

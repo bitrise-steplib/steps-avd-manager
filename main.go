@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/bitrise-steplib/steps-avd-manager/hardwareconfig"
 	"github.com/bitrise-tools/go-steputils/input"
@@ -14,25 +15,26 @@ import (
 
 // ConfigsModel ...
 type ConfigsModel struct {
-	Version     string
-	Locale      string
-	Resolution  string
-	Orientation string
-	AndroidHome string
-	Tag         string
-	Overwrite   string // TODO
-	ID          string
+	Version      string
+	Locale       string
+	Resolution   string
+	Orientation  string
+	AndroidHome  string
+	Tag          string
+	ID           string
+	CustomConfig string
 }
 
 func createConfigsModelFromEnvs() ConfigsModel {
 	return ConfigsModel{
-		Version:     os.Getenv("version"),
-		Locale:      os.Getenv("locale"),
-		Resolution:  os.Getenv("resolution"),
-		Orientation: os.Getenv("orientation"),
-		Tag:         os.Getenv("tag"),
-		ID:          os.Getenv("emulator_id"),
-		AndroidHome: os.Getenv("ANDROID_HOME"),
+		Version:      os.Getenv("version"),
+		Locale:       os.Getenv("locale"),
+		Resolution:   os.Getenv("resolution"),
+		Orientation:  os.Getenv("orientation"),
+		Tag:          os.Getenv("tag"),
+		ID:           os.Getenv("emulator_id"),
+		CustomConfig: os.Getenv("custom_hw_config"),
+		AndroidHome:  os.Getenv("ANDROID_HOME"),
 	}
 }
 
@@ -43,6 +45,8 @@ func (configs ConfigsModel) print() {
 	log.Printf("- Resolution: %s", configs.Resolution)
 	log.Printf("- Orientation: %s", configs.Orientation)
 	log.Printf("- Tag: %s", configs.Tag)
+	log.Printf("- ID: %s", configs.ID)
+	log.Printf("- CustomConfig: %s", configs.CustomConfig)
 }
 
 func (configs ConfigsModel) validate() error {
@@ -117,6 +121,19 @@ func main() {
 		log.Infof("Create AVD")
 
 		hwConfig := hardwareconfig.New(configs.ID, configs.Tag, configs.Version, configs.Orientation, configs.Locale, configs.Resolution, true)
+
+		for _, config := range strings.Split(configs.CustomConfig, "\n") {
+			if strings.TrimSpace(config) == "" {
+				continue
+			}
+
+			configSplit := strings.Split(config, "=")
+			if len(configSplit) < 2 {
+				continue
+			}
+			hwConfig.Config.SetProperty(configSplit[0], strings.Join(configSplit[1:], "="))
+		}
+
 		if err := hwConfig.Create(); err != nil {
 			log.Errorf("Failed to create avd, error: %s", err)
 			os.Exit(1)
@@ -125,13 +142,20 @@ func main() {
 		log.Donef("- Done")
 	}
 
+	fmt.Println()
+
 	// run emulator
 	{
 		log.Infof("Start emulator")
 
-		out, err := command.New(filepath.Join(configs.AndroidHome, "emulator/emulator"), "-avd", configs.ID, "-no-window", "-no-audio", "-accel", "on", "-qemu", "-display", "none").RunAndReturnTrimmedCombinedOutput()
+		cmd := command.New(filepath.Join(configs.AndroidHome, "emulator/emulator"), "-avd", configs.ID, "-no-window", "-no-audio", "-accel", "on", "-qemu", "-display", "none")
+
+		cmd.SetStdout(os.Stdout)
+		cmd.SetStderr(os.Stderr)
+
+		err := cmd.GetCmd().Start()
 		if err != nil {
-			log.Errorf("Failed to update emulator sdk package, error: %s, output: %s", err, out)
+			log.Errorf("Failed to update emulator sdk package, error: %s", err)
 			os.Exit(1)
 		}
 
