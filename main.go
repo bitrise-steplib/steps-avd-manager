@@ -101,7 +101,7 @@ func main() {
 
 	// update ensure new sdkmanager, avdmanager
 	{
-		requiredSDKPackages := []string{"emulator", "platform-tools", fmt.Sprintf("system-images;android-%s;%s;x86", configs.Version, configs.Tag)}
+		requiredSDKPackages := []string{"emulator", "tools", "platform-tools", fmt.Sprintf("system-images;android-%s;%s;x86", configs.Version, configs.Tag)}
 
 		log.Infof("Ensure sdk packages: %v", requiredSDKPackages)
 
