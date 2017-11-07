@@ -1,0 +1,34 @@
+{
+	"ImportPath": "github.com/bitrise-steplib/steps-avd-manager",
+	"GoVersion": "go1.8",
+	"GodepVersion": "v79",
+	"Packages": [
+		"./..."
+	],
+	"Deps": [
+		{
+			"ImportPath": "github.com/bitrise-io/go-utils/colorstring",
+			"Rev": "c01f74d93a588442f332250d1b5fd30f7ad4fa58"
+		},
+		{
+			"ImportPath": "github.com/bitrise-io/go-utils/command",
+			"Rev": "c01f74d93a588442f332250d1b5fd30f7ad4fa58"
+		},
+		{
+			"ImportPath": "github.com/bitrise-io/go-utils/errorutil",
+			"Rev": "c01f74d93a588442f332250d1b5fd30f7ad4fa58"
+		},
+		{
+			"ImportPath": "github.com/bitrise-io/go-utils/log",
+			"Rev": "c01f74d93a588442f332250d1b5fd30f7ad4fa58"
+		},
+		{
+			"ImportPath": "github.com/bitrise-io/go-utils/pathutil",
+			"Rev": "c01f74d93a588442f332250d1b5fd30f7ad4fa58"
+		},
+		{
+			"ImportPath": "github.com/bitrise-tools/go-steputils/input",
+			"Rev": "a848c9870ff7d745a8fb2a951e1c81fcb147b4ec"
+		}
+	]
+}

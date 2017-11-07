@@ -1,0 +1,91 @@
+title: "STEP TEMPLATE"
+summary: A short summary of the step. Don't make it too long ;)
+description: |-
+  This is a Step template.
+  Contains everything what's required for a valid Stepman managed step.
+
+  A Step's description (and generally any `description` property)
+  can be a [Markdown](https://en.wikipedia.org/wiki/Markdown) formatted text.
+
+  To create your own Step:
+
+  1. Create a new repository on GitHub
+  2. Copy the files from this folder into your repository
+  3. That's all, you can use it on your own machine
+  4. Once you're happy with it you can share it with others.
+website: https://github.com/bitrise-steplib/step-template-go
+source_code_url: https://github.com/bitrise-steplib/step-template-go
+support_url: https://github.com/bitrise-steplib/step-template-go/issues
+host_os_tags:
+  - osx-10.10
+project_type_tags:
+  - ios
+  - android
+  - xamarin
+type_tags:
+  - script
+is_requires_admin_user: true
+is_always_run: false
+is_skippable: false
+deps:
+  brew:
+  - name: go
+  apt_get:
+  - name: golang
+    bin_name: go
+toolkit:
+  go:
+    package_name: github.com/bitrise-steplib/step-template-go
+run_if: ""
+inputs:
+  - version: 26
+    opts:
+      title: "Version"
+      summary: The device will run with the specified version of android.
+      description: The device will run with the specified version of android.
+      is_expand: true
+      is_required: true
+  - orientation: portrait
+    opts:
+      title: "Orientation"
+      summary: Set the device to the selected orientation.
+      description: Set the device to the selected orientation.
+      is_expand: true
+      is_required: true
+      value_options:
+      - portrait
+      - landscape
+  - locale: en-US
+    opts:
+      title: "Locale"
+      summary: Set the language and region of the device.
+      description: Set the language and region of the device.
+      is_expand: true
+      is_required: true
+  - resolution: 720x1280
+    opts:
+      title: "Resolution"
+      summary: Set the device's display resolution.
+      description: Set the device's display resolution.
+      is_expand: true
+      is_required: true
+  - emulator_id: "emulator"
+    opts:
+      title: "ID"
+      summary: Set the device's ID. (This will be the name under $HOME/.android/avd/)
+      description: Set the device's ID. (This will be the name under $HOME/.android/avd/)
+      is_expand: true
+      is_required: true
+  - tag: google_apis
+    opts:
+      title: "Tag"
+      summary: Select OS tag to have the required toolset on the device.
+      description: Select OS tag to have the required toolset on the device.
+      is_expand: true
+      is_required: true
+      value_options:
+      - "google_apis"
+      - "google_apis_playstore"
+      - "android-wear"
+      - "android-tv"
+      - "default"
