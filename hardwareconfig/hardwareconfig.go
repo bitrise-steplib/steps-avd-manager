@@ -26,10 +26,10 @@ hw.cpu.arch=x86
 hw.cpu.ncore=2
 hw.dPad=no
 hw.gps=yes
-hw.gpu.enabled=no
-hw.gpu.mode=off
 hw.keyboard=yes
-hw.lcd.density=420
+hw.lcd.density=240
+hw.gpu.enabled = true
+hw.gpu.mode = host
 hw.mainKeys=no
 hw.ramSize=1536
 hw.sdCard=yes
@@ -41,7 +41,7 @@ runtime.network.speed=full
 sdcard.size=512M
 showDeviceFrame=no
 skin.dynamic=yes
-skin.name=1080x1920
+skin.name=720x1280
 skin.path=_no_skin
 skin.path.backup=_no_skin
 vm.heapSize=384`
@@ -105,17 +105,23 @@ func (props *PropertyList) String() string {
 
 // SetProperty ...
 func (props *PropertyList) SetProperty(key, value string) {
-	overwritten := false
+	skip := false
+
 	for i, line := range *props {
 		if !strings.HasPrefix(strings.TrimSpace(line), key) {
 			(*props)[i] = line
 		} else {
-			overwritten = true
-			(*props)[i] = fmt.Sprintf("%s=%s", key, value)
+			skip = true
+			if value != "" {
+				(*props)[i] = fmt.Sprintf("%s=%s", key, value)
+			} else {
+				*props = append((*props)[:i], (*props)[i+1:]...)
+				break
+			}
 		}
 	}
 
-	if !overwritten {
+	if !skip && value != "" {
 		(*props) = append((*props), fmt.Sprintf("%s=%s", key, value))
 	}
 }
@@ -142,16 +148,21 @@ func (hwConfig *HWConfig) Create() error {
 	encryptionKeyTargetPath := filepath.Join(avdPath, "encryptionkey.img")
 	systemTargetPath := filepath.Join(avdPath, "system.img")
 	userDataTargetPath := filepath.Join(avdPath, "userdata.img")
-	userDataSourcePath := filepath.Join(androidHome, hwConfig.Config.GetProperty("image.sysdir.1"), "userdata.img") //encryptionkey.img
+	userDataSourcePath := filepath.Join(androidHome, hwConfig.Config.GetProperty("image.sysdir.1"), "userdata.img")
 	encryptionKeySourcePath := filepath.Join(androidHome, hwConfig.Config.GetProperty("image.sysdir.1"), "encryptionkey.img")
 	systemSourcePath := filepath.Join(androidHome, hwConfig.Config.GetProperty("image.sysdir.1"), "system.img")
 
-	res, err := ensureResolutionOrientation(hwConfig.Resolution, hwConfig.Orientation)
-	if err != nil {
-		return err
-	}
+	// ensure width and height are matching orientation
+	{
+		if hwConfig.Config.GetProperty("skin.name") != "" {
+			res, err := ensureResolutionOrientation(hwConfig.Resolution, hwConfig.Orientation)
+			if err != nil {
+				return err
+			}
 
-	hwConfig.Config.SetProperty("skin.name", res)
+			hwConfig.Config.SetProperty("skin.name", res)
+		}
+	}
 
 	if err := os.MkdirAll(avdPath, 0777); err != nil {
 		return err
@@ -190,7 +201,7 @@ func (hwConfig *HWConfig) Create() error {
 			return err
 		}
 
-		data = bytes.Replace(data, []byte("ro.product.locale=en-US"), []byte(fmt.Sprintf("ro.product.locale=%s", hwConfig.Locale)), -1)
+		data = bytes.Replace(data, []byte("ro.product.locale=en-US"), []byte(fmt.Sprintf("ro.product.locale=%s", hwConfig.Locale)), 1)
 
 		err = fileutil.WriteBytesToFile(systemTargetPath, data)
 		if err != nil {

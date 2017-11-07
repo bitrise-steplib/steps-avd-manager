@@ -34,6 +34,36 @@ func TestConfigs2(t *testing.T) {
 	require.FailNow(t, "ok")
 }
 
+func TestPropertyList(t *testing.T) {
+	proplist := &PropertyList{}
+	proplist.SetProperty("key1", "val1")
+	proplist.SetProperty("key2", "val2")
+	proplist.SetProperty("key3", "val3")
+
+	expected := &PropertyList{"key1=val1", "key2=val2", "key3=val3"}
+	require.Equal(t, *expected, *proplist)
+
+	proplist.SetProperty("key2", "valnew")
+
+	expected = &PropertyList{"key1=val1", "key2=valnew", "key3=val3"}
+	require.Equal(t, *expected, *proplist)
+
+	proplist.SetProperty("key1", "")
+
+	expected = &PropertyList{"key2=valnew", "key3=val3"}
+	require.Equal(t, *expected, *proplist)
+
+	proplist.SetProperty("key4", "test")
+
+	expected = &PropertyList{"key2=valnew", "key3=val3", "key4=test"}
+	require.Equal(t, *expected, *proplist)
+
+	proplist.SetProperty("key5", "")
+
+	expected = &PropertyList{"key2=valnew", "key3=val3", "key4=test"}
+	require.Equal(t, *expected, *proplist)
+}
+
 func TestConfigs3(t *testing.T) {
 	res, _ := ensureResolutionOrientation("100x200", "portrait")
 	require.Equal(t, "100x200", res)

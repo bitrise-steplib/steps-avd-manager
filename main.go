@@ -99,7 +99,7 @@ func main() {
 	{
 		requiredSDKPackages := []string{"emulator", "platform-tools", fmt.Sprintf("system-images;android-%s;%s;x86", configs.Version, configs.Tag)}
 
-		log.Infof("Ensure sdk package: %v", requiredSDKPackages)
+		log.Infof("Ensure sdk packages: %v", requiredSDKPackages)
 
 		out, err := command.New(filepath.Join(configs.AndroidHome, "tools/bin/sdkmanager"), requiredSDKPackages...).RunAndReturnTrimmedCombinedOutput()
 		if err != nil {
@@ -126,4 +126,15 @@ func main() {
 	}
 
 	// run emulator
+	{
+		log.Infof("Start emulator")
+
+		out, err := command.New(filepath.Join(configs.AndroidHome, "emulator/emulator"), "-avd", configs.ID, "-no-window", "-no-audio", "-accel", "on", "-qemu", "-display", "none").RunAndReturnTrimmedCombinedOutput()
+		if err != nil {
+			log.Errorf("Failed to update emulator sdk package, error: %s, output: %s", err, out)
+			os.Exit(1)
+		}
+
+		log.Donef("- Done")
+	}
 }
