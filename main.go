@@ -105,8 +105,6 @@ func main() {
 
 		log.Infof("Ensure sdk packages: %v", requiredSDKPackages)
 
-		requiredSDKPackages = append(requiredSDKPackages, "--update")
-
 		out, err := command.New(filepath.Join(configs.AndroidHome, "tools/bin/sdkmanager"), requiredSDKPackages...).RunAndReturnTrimmedCombinedOutput()
 		if err != nil {
 			log.Errorf("Failed to update emulator sdk package, error: %s, output: %s", err, out)
