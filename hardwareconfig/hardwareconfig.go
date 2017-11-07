@@ -180,14 +180,8 @@ func (hwConfig *HWConfig) Create() error {
 		return err
 	}
 
-	if err := copyFile(systemSourcePath, systemTargetPath); err != nil {
-		return err
-	}
-
-	if b, err := pathutil.IsPathExists(encryptionKeySourcePath); err == nil && b {
-		if err := copyFile(encryptionKeySourcePath, encryptionKeyTargetPath); err != nil {
-			return err
-		}
+	if out, err := command.New(filepath.Join(androidHome, "tools/mksdcard"), "-l", "SDCARD", sdcardSize, sdcardPath).RunAndReturnTrimmedCombinedOutput(); err != nil {
+		return fmt.Errorf("error: %s, output: %s", err, out)
 	}
 
 	version, err := strconv.Atoi(hwConfig.Version)
@@ -196,6 +190,16 @@ func (hwConfig *HWConfig) Create() error {
 	}
 
 	if hwConfig.Locale != "en-US" && version >= 23 {
+		if err := copyFile(systemSourcePath, systemTargetPath); err != nil {
+			return err
+		}
+
+		if b, err := pathutil.IsPathExists(encryptionKeySourcePath); err == nil && b {
+			if err := copyFile(encryptionKeySourcePath, encryptionKeyTargetPath); err != nil {
+				return err
+			}
+		}
+
 		data, err := fileutil.ReadBytesFromFile(systemTargetPath)
 		if err != nil {
 			return err
@@ -207,10 +211,6 @@ func (hwConfig *HWConfig) Create() error {
 		if err != nil {
 			return err
 		}
-	}
-
-	if out, err := command.New(filepath.Join(androidHome, "tools/mksdcard"), "-l", "SDCARD", sdcardSize, sdcardPath).RunAndReturnTrimmedCombinedOutput(); err != nil {
-		return fmt.Errorf("error: %s, output: %s", err, out)
 	}
 
 	return nil
