@@ -12,6 +12,7 @@ import (
 	"github.com/bitrise-io/depman/pathutil"
 	"github.com/bitrise-io/go-utils/command"
 	"github.com/bitrise-io/go-utils/fileutil"
+	"github.com/bitrise-io/go-utils/log"
 )
 
 const defaultConfig = `avd.ini.encoding=UTF-8
@@ -27,7 +28,7 @@ hw.cpu.ncore=2
 hw.dPad=no
 hw.gps=yes
 hw.keyboard=yes
-hw.lcd.density=240
+hw.lcd.density=320
 hw.gpu.enabled=true
 hw.gpu.mode=host
 hw.mainKeys=no
@@ -59,13 +60,13 @@ type HWConfig struct {
 	Orientation string
 	Resolution  string
 	Locale      string
-	Overwrite   bool
+	Density     string
 	Config      *PropertyList
 	Descriptor  *PropertyList
 }
 
 // New ...
-func New(id, tag, version, orientation, locale, resolution string, overwrite bool) *HWConfig {
+func New(id, tag, version, orientation, locale, resolution, density string) *HWConfig {
 	hwConfig := &HWConfig{
 		ID:          id,
 		Tag:         tag,
@@ -73,7 +74,7 @@ func New(id, tag, version, orientation, locale, resolution string, overwrite boo
 		Version:     version,
 		Locale:      locale,
 		Resolution:  resolution,
-		Overwrite:   overwrite,
+		Density:     density,
 	}
 
 	defaultConfig := PropertyList(strings.Split(defaultConfig, "\n"))
@@ -87,6 +88,7 @@ func New(id, tag, version, orientation, locale, resolution string, overwrite boo
 	hwConfig.Config.SetProperty("image.sysdir.1", fmt.Sprintf("system-images/android-%s/%s/x86/", version, tag))
 	hwConfig.Config.SetProperty("hw.initialOrientation", strings.Title(orientation))
 	hwConfig.Config.SetProperty("skin.name", resolution)
+	hwConfig.Config.SetProperty("hw.lcd.density", density)
 
 	defaultDescriptor := PropertyList(strings.Split(defaultDescriptor, "\n"))
 	hwConfig.Descriptor = &defaultDescriptor
@@ -221,7 +223,11 @@ func copyFile(src, dst string) (err error) {
 	if err != nil {
 		return
 	}
-	defer in.Close()
+	defer func() {
+		if err := in.Close(); err != nil {
+			log.Errorf("Failed to close file, error: %s", err)
+		}
+	}()
 	out, err := os.Create(dst)
 	if err != nil {
 		return

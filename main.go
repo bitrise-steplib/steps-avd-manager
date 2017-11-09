@@ -9,32 +9,39 @@ import (
 	"github.com/bitrise-steplib/steps-avd-manager/hardwareconfig"
 	"github.com/bitrise-tools/go-steputils/input"
 
+	"github.com/bitrise-io/depman/pathutil"
 	"github.com/bitrise-io/go-utils/command"
 	"github.com/bitrise-io/go-utils/log"
 )
 
 // ConfigsModel ...
 type ConfigsModel struct {
-	Version      string
-	Locale       string
-	Resolution   string
-	Orientation  string
-	AndroidHome  string
-	Tag          string
-	ID           string
-	CustomConfig string
+	Version            string
+	Locale             string
+	Resolution         string
+	Orientation        string
+	AndroidHome        string
+	Tag                string
+	ID                 string
+	CustomConfig       string
+	Density            string
+	Overwrite          string
+	CustomCommandFlags string
 }
 
 func createConfigsModelFromEnvs() ConfigsModel {
 	return ConfigsModel{
-		Version:      os.Getenv("version"),
-		Locale:       os.Getenv("locale"),
-		Resolution:   os.Getenv("resolution"),
-		Orientation:  os.Getenv("orientation"),
-		Tag:          os.Getenv("tag"),
-		ID:           os.Getenv("emulator_id"),
-		CustomConfig: os.Getenv("custom_hw_config"),
-		AndroidHome:  os.Getenv("ANDROID_HOME"),
+		Version:            os.Getenv("version"),
+		Locale:             os.Getenv("locale"),
+		Resolution:         os.Getenv("resolution"),
+		Orientation:        os.Getenv("orientation"),
+		Tag:                os.Getenv("tag"),
+		ID:                 os.Getenv("emulator_id"),
+		Density:            os.Getenv("density"),
+		Overwrite:          os.Getenv("overwrite"),
+		CustomConfig:       os.Getenv("custom_hw_config"),
+		AndroidHome:        os.Getenv("ANDROID_HOME"),
+		CustomCommandFlags: os.Getenv("custom_command_flags"),
 	}
 }
 
@@ -43,15 +50,23 @@ func (configs ConfigsModel) print() {
 	log.Printf("- Version: %s", configs.Version)
 	log.Printf("- Locale: %s", configs.Locale)
 	log.Printf("- Resolution: %s", configs.Resolution)
+	log.Printf("- Density: %s", configs.Density)
 	log.Printf("- Orientation: %s", configs.Orientation)
 	log.Printf("- Tag: %s", configs.Tag)
 	log.Printf("- ID: %s", configs.ID)
+	log.Printf("- Overwrite: %s", configs.Overwrite)
 	log.Printf("- CustomConfig: %s", configs.CustomConfig)
 }
 
 func (configs ConfigsModel) validate() error {
 	if err := input.ValidateIfNotEmpty(configs.Version); err != nil {
 		return fmt.Errorf("Version, %s", err)
+	}
+	if err := input.ValidateIfNotEmpty(configs.Overwrite); err != nil {
+		return fmt.Errorf("Overwrite, %s", err)
+	}
+	if err := input.ValidateWithOptions(configs.Overwrite, "true", "false"); err != nil {
+		return fmt.Errorf("Overwrite, %s", err)
 	}
 	if err := input.ValidateIfNotEmpty(configs.ID); err != nil {
 		return fmt.Errorf("ID, %s", err)
@@ -114,32 +129,67 @@ func main() {
 		log.Donef("- Done")
 	}
 
-	fmt.Println()
+	avdPath := filepath.Join(os.Getenv("HOME"), ".android/avd", fmt.Sprintf("%s.avd", configs.ID))
+	avdPathExists, err := pathutil.IsPathExists(avdPath)
+	if err != nil {
+		log.Errorf("Failed to check if path exists: %s", err)
+		os.Exit(1)
+	}
+	iniPath := filepath.Join(os.Getenv("HOME"), ".android/avd", fmt.Sprintf("%s.ini", configs.ID))
+	iniPathExists, err := pathutil.IsPathExists(iniPath)
+	if err != nil {
+		log.Errorf("Failed to check if path exists: %s", err)
+		os.Exit(1)
+	}
+
+	if configs.Overwrite == "true" {
+		fmt.Println()
+		log.Infof("Delete AVD")
+		if avdPathExists {
+			if err := os.RemoveAll(avdPath); err != nil {
+				log.Errorf("Failed to remove avd dir: %s", err)
+				os.Exit(1)
+			}
+		}
+		if iniPathExists {
+			if err := os.RemoveAll(iniPath); err != nil {
+				log.Errorf("Failed to remove ini file: %s", err)
+				os.Exit(1)
+			}
+		}
+		log.Donef("- Done")
+	}
 
 	// create emulator
 	{
-		log.Infof("Create AVD")
+		if (!iniPathExists && !avdPathExists) || configs.Overwrite == "true" {
+			fmt.Println()
+			log.Infof("Create AVD")
 
-		hwConfig := hardwareconfig.New(configs.ID, configs.Tag, configs.Version, configs.Orientation, configs.Locale, configs.Resolution, true)
+			hwConfig := hardwareconfig.New(configs.ID, configs.Tag, configs.Version, configs.Orientation, configs.Locale, configs.Resolution, configs.Density)
 
-		for _, config := range strings.Split(configs.CustomConfig, "\n") {
-			if strings.TrimSpace(config) == "" {
-				continue
+			for _, config := range strings.Split(configs.CustomConfig, "\n") {
+				if strings.TrimSpace(config) == "" {
+					continue
+				}
+
+				configSplit := strings.Split(config, "=")
+				if len(configSplit) < 2 {
+					continue
+				}
+				hwConfig.Config.SetProperty(configSplit[0], strings.Join(configSplit[1:], "="))
 			}
 
-			configSplit := strings.Split(config, "=")
-			if len(configSplit) < 2 {
-				continue
+			if err := hwConfig.Create(); err != nil {
+				log.Errorf("Failed to create avd, error: %s", err)
+				os.Exit(1)
 			}
-			hwConfig.Config.SetProperty(configSplit[0], strings.Join(configSplit[1:], "="))
-		}
 
-		if err := hwConfig.Create(); err != nil {
-			log.Errorf("Failed to create avd, error: %s", err)
-			os.Exit(1)
+			log.Donef("- Done")
+		} else {
+			fmt.Println()
+			log.Donef("Using existing AVD")
 		}
-
-		log.Donef("- Done")
 	}
 
 	fmt.Println()
@@ -148,7 +198,7 @@ func main() {
 	{
 		log.Infof("Start emulator")
 
-		cmd := command.New(filepath.Join(configs.AndroidHome, "emulator/emulator"), "-avd", configs.ID, "-no-window", "-no-audio", "-accel", "on", "-qemu", "-display", "none")
+		cmd := command.New(filepath.Join(configs.AndroidHome, "emulator/emulator"), "-avd", configs.ID, configs.CustomCommandFlags)
 
 		cmd.SetStdout(os.Stdout)
 		cmd.SetStderr(os.Stderr)
