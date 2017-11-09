@@ -144,7 +144,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	if configs.Overwrite == "true" {
+	if configs.Overwrite == "true" || iniPathExists || avdPathExists {
 		fmt.Println()
 		log.Infof("Delete AVD")
 		if avdPathExists {
