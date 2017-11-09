@@ -37,6 +37,10 @@
 		{
 			"ImportPath": "github.com/bitrise-tools/go-steputils/input",
 			"Rev": "a848c9870ff7d745a8fb2a951e1c81fcb147b4ec"
+		},
+		{
+			"ImportPath": "github.com/kballard/go-shellquote",
+			"Rev": "cd60e84ee657ff3dc51de0b4f55dd299a3e136f2"
 		}
 	]
 }
