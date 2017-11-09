@@ -144,22 +144,24 @@ func main() {
 		os.Exit(1)
 	}
 
-	if configs.Overwrite == "true" || iniPathExists || avdPathExists {
-		fmt.Println()
-		log.Infof("Delete AVD")
-		if avdPathExists {
-			if err := os.RemoveAll(avdPath); err != nil {
-				log.Errorf("Failed to remove avd dir: %s", err)
-				os.Exit(1)
+	if configs.Overwrite == "true" {
+		if iniPathExists || avdPathExists {
+			fmt.Println()
+			log.Infof("Delete AVD")
+			if avdPathExists {
+				if err := os.RemoveAll(avdPath); err != nil {
+					log.Errorf("Failed to remove avd dir: %s", err)
+					os.Exit(1)
+				}
 			}
-		}
-		if iniPathExists {
-			if err := os.RemoveAll(iniPath); err != nil {
-				log.Errorf("Failed to remove ini file: %s", err)
-				os.Exit(1)
+			if iniPathExists {
+				if err := os.RemoveAll(iniPath); err != nil {
+					log.Errorf("Failed to remove ini file: %s", err)
+					os.Exit(1)
+				}
 			}
+			log.Donef("- Done")
 		}
-		log.Donef("- Done")
 	}
 
 	// create emulator
