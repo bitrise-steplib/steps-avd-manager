@@ -54,6 +54,7 @@ func (configs ConfigsModel) print() {
 	log.Printf("- Orientation: %s", configs.Orientation)
 	log.Printf("- Tag: %s", configs.Tag)
 	log.Printf("- ID: %s", configs.ID)
+	log.Printf("- CustomCommandFlags: %s", configs.CustomCommandFlags)
 	log.Printf("- Overwrite: %s", configs.Overwrite)
 	log.Printf("- CustomConfig: %s", configs.CustomConfig)
 }
