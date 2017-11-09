@@ -8,6 +8,7 @@ import (
 
 	"github.com/bitrise-steplib/steps-avd-manager/hardwareconfig"
 	"github.com/bitrise-tools/go-steputils/input"
+	shellquote "github.com/kballard/go-shellquote"
 
 	"github.com/bitrise-io/depman/pathutil"
 	"github.com/bitrise-io/go-utils/command"
@@ -199,11 +200,21 @@ func main() {
 	{
 		log.Infof("Start emulator")
 
-		cmd := command.New(filepath.Join(configs.AndroidHome, "emulator/emulator"), "-avd", configs.ID, configs.CustomCommandFlags)
+		customFlags, err := shellquote.Split(configs.CustomCommandFlags)
+		if err != nil {
+			log.Errorf("Failed to parse commands, error: %s", err)
+			os.Exit(1)
+		}
+
+		cmdSlice := []string{"-avd", configs.ID}
+
+		cmdSlice = append(cmdSlice, customFlags...)
+
+		cmd := command.New(filepath.Join(configs.AndroidHome, "emulator/emulator"), cmdSlice...)
 
 		cmd.SetStderr(os.Stderr)
 
-		err := cmd.GetCmd().Start()
+		err = cmd.GetCmd().Start()
 		if err != nil {
 			log.Errorf("Failed to update emulator sdk package, error: %s", err)
 			os.Exit(1)
