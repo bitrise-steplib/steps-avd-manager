@@ -201,7 +201,6 @@ func main() {
 
 		cmd := command.New(filepath.Join(configs.AndroidHome, "emulator/emulator"), "-avd", configs.ID, configs.CustomCommandFlags)
 
-		cmd.SetStdout(os.Stdout)
 		cmd.SetStderr(os.Stderr)
 
 		err := cmd.GetCmd().Start()
