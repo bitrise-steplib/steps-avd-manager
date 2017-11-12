@@ -215,6 +215,7 @@ func main() {
 		cmd := command.New(filepath.Join(configs.AndroidHome, "emulator/emulator64-x86"), cmdSlice...)
 
 		cmd.SetStderr(os.Stderr)
+		cmd.SetStdout(os.Stdout)
 
 		err = cmd.GetCmd().Start()
 		if err != nil {
