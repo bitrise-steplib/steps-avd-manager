@@ -212,7 +212,7 @@ func main() {
 
 		cmdSlice = append(cmdSlice, customFlags...)
 
-		cmd := command.New(filepath.Join(configs.AndroidHome, "emulator/emulator"), cmdSlice...)
+		cmd := command.New(filepath.Join(configs.AndroidHome, "emulator/emulator64-x86"), cmdSlice...)
 
 		cmd.SetStderr(os.Stderr)
 
