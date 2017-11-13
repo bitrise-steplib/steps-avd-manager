@@ -52,7 +52,7 @@ inputs:
       description: Set the language and region of the device.
       is_expand: true
       is_required: true
-  - resolution: 720x1280
+  - resolution: 240x426
     opts:
       category: Device
       title: "Resolution"
@@ -60,7 +60,7 @@ inputs:
       description: Set the device's display resolution.
       is_expand: true
       is_required: true
-  - density: 320
+  - density: 120
     opts:
       category: Device
       title: "Density"
