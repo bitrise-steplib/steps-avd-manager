@@ -45,7 +45,7 @@ skin.dynamic=yes
 skin.name=720x1280
 skin.path=_no_skin
 skin.path.backup=_no_skin
-vm.heapSize=384`
+vm.heapSize=256`
 
 const defaultDescriptor = `avd.ini.encoding=UTF-8`
 
