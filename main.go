@@ -219,7 +219,7 @@ func main() {
 
 		err = cmd.GetCmd().Start()
 		if err != nil {
-			log.Errorf("Failed to update emulator sdk package, error: %s", err)
+			log.Errorf("Failed to start emulator, error: %s", err)
 			os.Exit(1)
 		}
 
