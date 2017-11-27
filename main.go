@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/bitrise-steplib/steps-avd-manager/hardwareconfig"
+	"github.com/bitrise-steplib/steps-avd-manager/avdmanager"
 	"github.com/bitrise-tools/go-steputils/input"
 	shellquote "github.com/kballard/go-shellquote"
 
@@ -170,7 +170,11 @@ func main() {
 			fmt.Println()
 			log.Infof("Create AVD")
 
-			hwConfig := hardwareconfig.New(configs.ID, configs.Tag, configs.Version, configs.Orientation, configs.Locale, configs.Resolution, configs.Density)
+			avd, err := avdmanager.New(configs.ID, configs.Tag, configs.Version, configs.Orientation, configs.Locale, configs.Resolution, configs.Density)
+			if err != nil {
+				log.Errorf("Failed to create avd config, error: %s", err)
+				os.Exit(1)
+			}
 
 			for _, config := range strings.Split(configs.CustomConfig, "\n") {
 				if strings.TrimSpace(config) == "" {
@@ -181,10 +185,10 @@ func main() {
 				if len(configSplit) < 2 {
 					continue
 				}
-				hwConfig.Config.SetProperty(configSplit[0], strings.Join(configSplit[1:], "="))
+				avd.ConfigProperties.Apply(configSplit[0], strings.Join(configSplit[1:], "="))
 			}
 
-			if err := hwConfig.Create(); err != nil {
+			if err := avd.Create(); err != nil {
 				log.Errorf("Failed to create avd, error: %s", err)
 				os.Exit(1)
 			}
