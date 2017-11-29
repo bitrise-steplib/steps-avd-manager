@@ -44,14 +44,6 @@ inputs:
       value_options:
       - portrait
       - landscape
-  - locale: en-US
-    opts:
-      category: Android OS
-      title: "Locale"
-      summary: Set the language and region of the device.
-      description: Set the language and region of the device.
-      is_expand: true
-      is_required: true
   - resolution: 240x426
     opts:
       category: Device
@@ -66,6 +58,14 @@ inputs:
       title: "Density"
       summary: Set the device's display density.
       description: Set the device's display density.
+      is_expand: true
+      is_required: true
+  - profile: "Nexus 5X"
+    opts:
+      category: Device
+      title: "Profile"
+      summary: Set the device profile to create the new AVD. This profile contains all the parameters of the devices. To see the complete list of available profiles please use the `avdmanager list device` command.
+      description: Set the device profile to create the new AVD. This profile contains all the parameters of the devices. To see the complete list of available profiles please use the `avdmanager list device` command.
       is_expand: true
       is_required: true
   - emulator_id: "emulator"
@@ -151,3 +151,22 @@ inputs:
       description: Flags used when running the command to start the emulator.
       is_expand: true
       is_required: false
+  - emulator_abi: "x86"
+    opts:
+      category: Debug
+      title: "Emulator ABI"
+      summary: Select which ABI to use running the emulator. Availability depends on API level. Please use `sdkmanager --list` command to see the available ABIs.
+      description: Select which ABI to use running the emulator. Availability depends on API level. Please use `sdkmanager --list` command to see the available ABIs.
+      is_expand: true
+      is_required: true
+      value_options:
+      - "x86"
+      - "armeabi-v7a"
+      - "arm64-v8a"
+      - "x86_64"
+      - "mips"
+outputs:
+  - BITRISE_EMULATOR_SERIAL:
+    opts:
+      title: "Emulator serial"
+      description: "Booted emulator serial"

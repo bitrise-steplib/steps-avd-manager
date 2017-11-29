@@ -17,11 +17,32 @@ func (properties Properties) ToSlice() []string {
 	return propertiesSlice
 }
 
+// ToMap ...
+func (properties Properties) ToMap() map[string]string {
+	propertiesSlice := map[string]string{}
+	for _, property := range properties {
+		propertiesSlice[property.Key] = property.Value
+	}
+	return propertiesSlice
+}
+
+// List ...
+func (properties Properties) List() []Property {
+	propertiesSlice := []Property{}
+	for _, property := range properties {
+		propertiesSlice = append(propertiesSlice, property)
+	}
+	return propertiesSlice
+}
+
 // NewProperties ...
 func NewProperties(content []string) (Properties, error) {
 	props := Properties{}
 
 	for _, line := range content {
+		if strings.TrimSpace(line) == "" {
+			continue
+		}
 		property, err := NewProperty(line)
 		if err != nil {
 			return nil, fmt.Errorf("error parsing properties, error: %s", err)
@@ -34,6 +55,13 @@ func NewProperties(content []string) (Properties, error) {
 
 func (properties Properties) String() string {
 	return strings.Join(properties.ToSlice(), "\n")
+}
+
+// Append ...
+func (properties *Properties) Append(props Properties) {
+	for _, property := range props.List() {
+		properties.Apply(property.Key, property.Value)
+	}
 }
 
 // Apply ...
