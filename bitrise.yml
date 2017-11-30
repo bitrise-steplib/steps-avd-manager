@@ -116,6 +116,102 @@ workflows:
             bitrise run run-test-10
             bitrise run run-test-11
 
+  avd-23-run-tests:
+    envs:
+    - EMU_VER: 24
+    before_run:
+    - _prepare-test
+    - _start-emulator
+    after_run:
+    - _kill-emulator
+    steps:
+    - script:
+        inputs:
+        - content: |-
+            #!/bin/bash
+            bitrise run run-test-1
+            bitrise run run-test-3
+            bitrise run run-test-4
+            bitrise run run-test-5
+            bitrise run run-test-6
+            bitrise run run-test-7
+            bitrise run run-test-8
+            bitrise run run-test-9
+            bitrise run run-test-10
+            bitrise run run-test-11
+
+  avd-22-run-tests:
+    envs:
+    - EMU_VER: 24
+    before_run:
+    - _prepare-test
+    - _start-emulator
+    after_run:
+    - _kill-emulator
+    steps:
+    - script:
+        inputs:
+        - content: |-
+            #!/bin/bash
+            bitrise run run-test-1
+            bitrise run run-test-3
+            bitrise run run-test-4
+            bitrise run run-test-5
+            bitrise run run-test-6
+            bitrise run run-test-7
+            bitrise run run-test-8
+            bitrise run run-test-9
+            bitrise run run-test-10
+            bitrise run run-test-11
+
+  avd-21-run-tests:
+    envs:
+    - EMU_VER: 24
+    before_run:
+    - _prepare-test
+    - _start-emulator
+    after_run:
+    - _kill-emulator
+    steps:
+    - script:
+        inputs:
+        - content: |-
+            #!/bin/bash
+            bitrise run run-test-1
+            bitrise run run-test-3
+            bitrise run run-test-4
+            bitrise run run-test-5
+            bitrise run run-test-6
+            bitrise run run-test-7
+            bitrise run run-test-8
+            bitrise run run-test-9
+            bitrise run run-test-10
+            bitrise run run-test-11
+
+  avd-19-run-tests:
+    envs:
+    - EMU_VER: 24
+    before_run:
+    - _prepare-test
+    - _start-emulator
+    after_run:
+    - _kill-emulator
+    steps:
+    - script:
+        inputs:
+        - content: |-
+            #!/bin/bash
+            bitrise run run-test-1
+            bitrise run run-test-3
+            bitrise run run-test-4
+            bitrise run run-test-5
+            bitrise run run-test-6
+            bitrise run run-test-7
+            bitrise run run-test-8
+            bitrise run run-test-9
+            bitrise run run-test-10
+            bitrise run run-test-11
+
   avd-27-scr:
     envs:
     - EMU_VER: 27
@@ -199,6 +295,12 @@ workflows:
     - PROJECTNAME: BasicSample
     after_run:
     - _run-a-test
+    steps:
+    - script:
+        inputs:
+        - content: |-
+            #!/bin/bash
+            sleep 20
 
   run-test-3:
     envs:
@@ -301,9 +403,9 @@ workflows:
               $ANDROID_HOME/platform-tools/adb shell "screencap -p /sdcard/screen.png"
               $ANDROID_HOME/platform-tools/adb pull "/sdcard/screen.png" "./screen_$EMU_VER.png"
   _kill-emulator:
-    is_always_run: true
     steps:
     - script:
+        is_always_run: true
         inputs:
         - content: |
               #!/bin/bash
