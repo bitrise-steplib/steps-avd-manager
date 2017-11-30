@@ -2,7 +2,6 @@ package main
 
 import (
 	"bufio"
-	"bytes"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -21,23 +20,6 @@ import (
 	"github.com/bitrise-io/go-utils/log"
 )
 
-const defaultInitialProperties = `
-disk.dataPartition.size=1024M
-hw.camera.back=emulated
-hw.camera.front=emulated
-hw.keyboard=yes
-hw.gpu.enabled=true
-hw.gpu.mode=host
-hw.ramSize=1536
-runtime.network.latency=none
-runtime.network.speed=full
-showDeviceFrame=no
-skin.dynamic=yes
-skin.path=_no_skin
-skin.path.backup=_no_skin
-vm.heapSize=384
-`
-
 // ConfigsModel ...
 type ConfigsModel struct {
 	Version            string
@@ -52,6 +34,7 @@ type ConfigsModel struct {
 	CustomCommandFlags string
 	Abi                string
 	Profile            string
+	Verbose            string
 }
 
 func createConfigsModelFromEnvs() ConfigsModel {
@@ -68,6 +51,7 @@ func createConfigsModelFromEnvs() ConfigsModel {
 		CustomCommandFlags: os.Getenv("custom_command_flags"),
 		Abi:                os.Getenv("emulator_abi"),
 		Profile:            os.Getenv("profile"),
+		Verbose:            os.Getenv("verbose_mode"),
 	}
 }
 
@@ -98,9 +82,6 @@ func (configs ConfigsModel) validate() error {
 	}
 	if err := input.ValidateIfNotEmpty(configs.ID); err != nil {
 		return fmt.Errorf("ID, %s", err)
-	}
-	if err := input.ValidateIfNotEmpty(configs.Resolution); err != nil {
-		return fmt.Errorf("Resolution, %s", err)
 	}
 	if err := input.ValidateIfNotEmpty(configs.Orientation); err != nil {
 		return fmt.Errorf("Orientation, %s", err)
@@ -206,11 +187,6 @@ func main() {
 				failf("Failed to parse custom properties, error: %s", err)
 			}
 
-			initialProperties, err := avdconfig.NewProperties(strings.Split(defaultInitialProperties, "\n"))
-			if err != nil {
-				failf("Failed to parse custom properties, error: %s", err)
-			}
-
 			// -c 100M
 			cmd := command.New(filepath.Join(configs.AndroidHome, "tools/bin/avdmanager"), "create", "avd", "-f",
 				"-n", configs.ID,
@@ -224,33 +200,35 @@ func main() {
 				failf("Failed to create avd, error: %s output: %s", err, out)
 			}
 
-			avd, err := avdconfig.Parse(filepath.Join(os.Getenv("HOME"), fmt.Sprintf(".android/avd/%s.avd/config.ini", configs.ID)))
+			avdConfig, err := avdconfig.Parse(filepath.Join(os.Getenv("HOME"), fmt.Sprintf(".android/avd/%s.avd/config.ini", configs.ID)))
 			if err != nil {
 				failf("Failed to parse config properties, error: %s", err)
 			}
 
-			avd.Properties.Append(initialProperties)
+			if configs.Resolution != "" {
+				avdConfig.Properties.Apply("skin.name", configs.Resolution)
+			}
+			if configs.Density != "" {
+				avdConfig.Properties.Apply("hw.lcd.density", configs.Density)
+			}
+			avdConfig.Properties.Apply("PlayStore.enabled", fmt.Sprintf("%t", configs.Tag == "google_apis_playstore"))
+			avdConfig.Properties.Apply("hw.initialOrientation", strings.Title(configs.Orientation))
 
-			avd.Properties.Apply("skin.name", configs.Resolution)
-			avd.Properties.Apply("hw.lcd.density", configs.Density)
-			avd.Properties.Apply("PlayStore.enabled", fmt.Sprintf("%t", configs.Tag == "google_apis_playstore"))
-			avd.Properties.Apply("hw.initialOrientation", strings.Title(configs.Orientation))
-
-			avd.Properties.Append(customProperties)
+			avdConfig.Properties.Append(customProperties)
 
 			// ensure width and height are matching orientation
 			{
-				if avd.Properties.Get("skin.name") != "" {
+				if avdConfig.Properties.Get("skin.name") != "" {
 					res, err := ensureResolutionOrientation(configs.Resolution, configs.Orientation)
 					if err != nil {
 						failf("Failed to ensure device resolution, error: %s", err)
 					}
 
-					avd.Properties.Apply("skin.name", res)
+					avdConfig.Properties.Apply("skin.name", res)
 				}
 			}
 
-			if err := avd.Save(); err != nil {
+			if err := avdConfig.Save(); err != nil {
 				failf("Failed to save avd config, error: %s", err)
 			}
 
@@ -287,9 +265,10 @@ func main() {
 
 		osCommand := cmd.GetCmd()
 
-		var outbuf, errbuf bytes.Buffer
-		osCommand.Stderr = os.Stderr //&errbuf
-		osCommand.Stdout = os.Stdout //&outbuf
+		if configs.Verbose == "true" {
+			osCommand.Stderr = os.Stderr
+			osCommand.Stdout = os.Stdout
+		}
 
 		err = osCommand.Start()
 		if err != nil {
@@ -300,7 +279,7 @@ func main() {
 		for true {
 			time.Sleep(5 * time.Second)
 			if osCommand.ProcessState != nil && osCommand.ProcessState.Exited() {
-				failf("Emulator exited, error: %s, output: %s", errbuf.String(), outbuf.String())
+				failf("Emulator exited, error: %s", err)
 			}
 
 			currentRunningDevices, err := runningDeviceInfos(configs.AndroidHome)
@@ -318,10 +297,10 @@ func main() {
 				break
 			}
 
-			bootWaitTime := time.Duration(80)
+			bootWaitTime := time.Duration(300)
 
 			if time.Now().After(deviceDetectionStarted.Add(bootWaitTime * time.Second)) {
-				failf("Failed to boot emulator device within %d seconds. Output: %s - %s", bootWaitTime, errbuf.String(), outbuf.String())
+				failf("Failed to boot emulator device within %d seconds.", bootWaitTime)
 			}
 		}
 

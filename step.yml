@@ -25,45 +25,9 @@ toolkit:
     package_name: github.com/bitrise-steplib/steps-avd-manager
 run_if: ""
 inputs:
-  - version: 26
-    opts:
-      category: Android OS
-      title: "Version"
-      summary: The device will run with the specified version of android.
-      description: The device will run with the specified version of android.
-      is_expand: true
-      is_required: true
-  - orientation: portrait
-    opts:
-      category: Device
-      title: "Orientation"
-      summary: Set the device to the selected orientation.
-      description: Set the device to the selected orientation.
-      is_expand: true
-      is_required: true
-      value_options:
-      - portrait
-      - landscape
-  - resolution: 240x426
-    opts:
-      category: Device
-      title: "Resolution"
-      summary: Set the device's display resolution.
-      description: Set the device's display resolution.
-      is_expand: true
-      is_required: true
-  - density: 120
-    opts:
-      category: Device
-      title: "Density"
-      summary: Set the device's display density.
-      description: Set the device's display density.
-      is_expand: true
-      is_required: true
   - profile: "Nexus 5X"
     opts:
-      category: Device
-      title: "Profile"
+      title: "Device Profile"
       summary: Set the device profile to create the new AVD. This profile contains all the parameters of the devices. To see the complete list of available profiles please use the `avdmanager list device` command.
       description: Set the device profile to create the new AVD. This profile contains all the parameters of the devices. To see the complete list of available profiles please use the `avdmanager list device` command.
       is_expand: true
@@ -104,18 +68,89 @@ inputs:
       - "5.4in FWVGA"
       - "7in WSVGA (Tablet)"
       - "10.1in WXGA (Tablet)"
-
+  - version: 26
+    opts:
+      title: "Android API Level"
+      summary: The device will run with the specified version of android.
+      description: The device will run with the specified version of android.
+      is_expand: true
+      is_required: true
+  - tag: google_apis
+    opts:
+      title: "OS Tag"
+      summary: Select OS tag to have the required toolset on the device.
+      description: Select OS tag to have the required toolset on the device.
+      is_expand: true
+      is_required: true
+      value_options:
+      - "google_apis"
+      - "google_apis_playstore"
+      - "android-wear"
+      - "android-tv"
+      - "default"
+  - verbose_mode: false
+    opts:
+      category: Customize
+      title: "Verbose Mode"
+      summary: If set to `true` then the step will print emulator logs
+      description: If set to `true` then the step will print emulator logs
+      is_expand: true
+      is_required: true
+      value_options:
+      - "true"
+      - "false"
+  - orientation: portrait
+    opts:
+      category: Customize
+      title: "Orientation"
+      summary: Set the device to the selected orientation.
+      description: Set the device to the selected orientation.
+      is_expand: true
+      is_required: true
+      value_options:
+      - portrait
+      - landscape
+  - resolution: 240x426
+    opts:
+      category: Customize
+      title: "Resolution"
+      summary: Set the device's display resolution.
+      description: Set the device's display resolution.
+      is_expand: true
+      is_required: false
+  - density: 120
+    opts:
+      category: Customize
+      title: "Density"
+      summary: Set the device's display density.
+      description: Set the device's display density.
+      is_expand: true
+      is_required: false
   - emulator_id: "emulator"
     opts:
-      category: Debug
+      category: Customize
       title: "ID"
       summary: Set the device's ID. (This will be the name under $HOME/.android/avd/)
       description: Set the device's ID. (This will be the name under $HOME/.android/avd/)
       is_expand: true
       is_required: true
-  - custom_hw_config: 
+  - custom_hw_config: |-
+        disk.dataPartition.size=1024M
+        hw.camera.back=emulated
+        hw.camera.front=emulated
+        hw.keyboard=yes
+        hw.gpu.enabled=true
+        hw.gpu.mode=swiftshader
+        hw.ramSize=1536
+        runtime.network.latency=none
+        runtime.network.speed=full
+        showDeviceFrame=no
+        skin.dynamic=yes
+        skin.path=_no_skin
+        skin.path.backup=_no_skin
+        vm.heapSize=384
     opts:
-      category: Debug
+      category: Customize
       title: "Custom hardware config"
       summary: |-
         Will append, replace or remove your config entries to the default device hardware config.
@@ -155,23 +190,9 @@ inputs:
         If the given `key` is already in the config, the `value` will be replaced.
       is_expand: true
       is_required: false
-  - tag: google_apis
-    opts:
-      category: Android OS
-      title: "Tag"
-      summary: Select OS tag to have the required toolset on the device.
-      description: Select OS tag to have the required toolset on the device.
-      is_expand: true
-      is_required: true
-      value_options:
-      - "google_apis"
-      - "google_apis_playstore"
-      - "android-wear"
-      - "android-tv"
-      - "default"
   - overwrite: true
     opts:
-      category: Debug
+      category: Customize
       title: "Overwrite"
       summary: Overwrite AVD images if already exists.
       description: Overwrite AVD images if already exists.
@@ -182,7 +203,7 @@ inputs:
       - "false"
   - custom_command_flags: "-no-window -no-audio -debug-init"
     opts:
-      category: Debug
+      category: Customize
       title: "Start AVD command flags"
       summary: Flags used when running the command to start the emulator.
       description: Flags used when running the command to start the emulator.
@@ -190,7 +211,7 @@ inputs:
       is_required: false
   - emulator_abi: "x86"
     opts:
-      category: Debug
+      category: Customize
       title: "Emulator ABI"
       summary: Select which ABI to use running the emulator. Availability depends on API level. Please use `sdkmanager --list` command to see the available ABIs.
       description: Select which ABI to use running the emulator. Availability depends on API level. Please use `sdkmanager --list` command to see the available ABIs.
