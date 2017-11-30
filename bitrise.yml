@@ -118,7 +118,7 @@ workflows:
 
   avd-23-run-tests:
     envs:
-    - EMU_VER: 24
+    - EMU_VER: 23
     before_run:
     - _prepare-test
     - _start-emulator
@@ -142,7 +142,7 @@ workflows:
 
   avd-22-run-tests:
     envs:
-    - EMU_VER: 24
+    - EMU_VER: 22
     before_run:
     - _prepare-test
     - _start-emulator
@@ -166,7 +166,7 @@ workflows:
 
   avd-21-run-tests:
     envs:
-    - EMU_VER: 24
+    - EMU_VER: 21
     before_run:
     - _prepare-test
     - _start-emulator
@@ -190,7 +190,7 @@ workflows:
 
   avd-19-run-tests:
     envs:
-    - EMU_VER: 24
+    - EMU_VER: 19
     before_run:
     - _prepare-test
     - _start-emulator
