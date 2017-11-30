@@ -67,7 +67,7 @@ func (configs ConfigsModel) print() {
 	log.Printf("- ID: %s", configs.ID)
 	log.Printf("- CustomCommandFlags: %s", configs.CustomCommandFlags)
 	log.Printf("- Overwrite: %s", configs.Overwrite)
-	log.Printf("- CustomConfig: %s", configs.CustomConfig)
+	log.Printf("- CustomConfig:\n%s", configs.CustomConfig)
 }
 
 func (configs ConfigsModel) validate() error {
