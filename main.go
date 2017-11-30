@@ -288,8 +288,8 @@ func main() {
 		osCommand := cmd.GetCmd()
 
 		var outbuf, errbuf bytes.Buffer
-		osCommand.Stderr = &errbuf
-		osCommand.Stdout = &outbuf
+		osCommand.Stderr = os.Stderr //&errbuf
+		osCommand.Stdout = os.Stdout //&outbuf
 
 		err = osCommand.Start()
 		if err != nil {
