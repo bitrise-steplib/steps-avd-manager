@@ -7,13 +7,13 @@ workflows:
     - go-tests
     - _prepare
     after_run:
-    - avd-26
-    - avd-25
-    - avd-24
-    - avd-23
-    - avd-22
-    - avd-21
     - avd-19
+    - avd-21
+    - avd-22
+    - avd-23
+    - avd-24
+    - avd-25
+    - avd-26
 
   avd-26:
     envs:
