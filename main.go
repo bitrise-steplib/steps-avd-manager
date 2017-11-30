@@ -300,7 +300,7 @@ func main() {
 		for true {
 			time.Sleep(5 * time.Second)
 			if osCommand.ProcessState != nil && osCommand.ProcessState.Exited() {
-				failf("Emulator exited, error: %s", errbuf.String())
+				failf("Emulator exited, error: %s, output: %s", errbuf.String(), outbuf.String())
 			}
 
 			currentRunningDevices, err := runningDeviceInfos(configs.AndroidHome)
@@ -321,7 +321,7 @@ func main() {
 			bootWaitTime := time.Duration(80)
 
 			if time.Now().After(deviceDetectionStarted.Add(bootWaitTime * time.Second)) {
-				failf("Failed to boot emulator device within %d seconds", bootWaitTime)
+				failf("Failed to boot emulator device within %d seconds. Output: %s - %s", bootWaitTime, errbuf.String(), outbuf.String())
 			}
 		}
 
