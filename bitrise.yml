@@ -7,9 +7,9 @@ workflows:
     - go-tests
     - _prepare
     after_run:
-    - avd-19
     - avd-21
     - avd-22
+    - avd-19
     - avd-23
     - avd-24
     - avd-25
