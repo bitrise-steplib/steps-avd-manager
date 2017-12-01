@@ -113,6 +113,95 @@ func (configs ConfigsModel) validate() error {
 	return nil
 }
 
+func runningDeviceInfos(androidHome string) (map[string]string, error) {
+	cmd := command.New(filepath.Join(androidHome, "platform-tools/adb"), "devices")
+	out, err := cmd.RunAndReturnTrimmedCombinedOutput()
+	if err != nil {
+		return map[string]string{}, fmt.Errorf("command failed, error: %s", err)
+	}
+
+	// List of devices attached
+	// emulator-5554	device
+	deviceListItemPattern := `^(?P<emulator>emulator-\d*)[\s+](?P<state>.*)`
+	deviceListItemRegexp := regexp.MustCompile(deviceListItemPattern)
+
+	deviceStateMap := map[string]string{}
+
+	scanner := bufio.NewScanner(strings.NewReader(out))
+	for scanner.Scan() {
+		line := scanner.Text()
+		matches := deviceListItemRegexp.FindStringSubmatch(line)
+		if len(matches) == 3 {
+			serial := matches[1]
+			state := matches[2]
+
+			deviceStateMap[serial] = state
+		}
+
+	}
+	if scanner.Err() != nil {
+		return map[string]string{}, fmt.Errorf("scanner failed, error: %s", err)
+	}
+
+	return deviceStateMap, nil
+}
+
+func failf(msg string, args ...interface{}) {
+	log.Errorf(msg, args...)
+	os.Exit(1)
+}
+
+func currentlyStartedDeviceSerial(alreadyRunningDeviceInfos, currentlyRunningDeviceInfos map[string]string) string {
+	startedSerial := ""
+
+	for serial := range currentlyRunningDeviceInfos {
+		_, found := alreadyRunningDeviceInfos[serial]
+		if !found {
+			startedSerial = serial
+			break
+		}
+	}
+
+	if len(startedSerial) > 0 {
+		state := currentlyRunningDeviceInfos[startedSerial]
+		if state == "device" {
+			return startedSerial
+		}
+	}
+
+	return ""
+}
+
+func ensureResolutionOrientation(res, orientation string) (string, error) {
+	sides := strings.Split(res, "x")
+
+	if len(sides) != 2 {
+		return "", fmt.Errorf("invalid resolution format: %s", res)
+	}
+
+	a, err := strconv.Atoi(sides[0])
+	if err != nil {
+		return "", err
+	}
+
+	b, err := strconv.Atoi(sides[1])
+	if err != nil {
+		return "", err
+	}
+
+	if strings.ToLower(orientation) == "portrait" {
+		if a < b {
+			return fmt.Sprintf("%dx%d", a, b), nil
+		}
+		return fmt.Sprintf("%dx%d", b, a), nil
+	}
+
+	if a > b {
+		return fmt.Sprintf("%dx%d", a, b), nil
+	}
+	return fmt.Sprintf("%dx%d", b, a), nil
+}
+
 func main() {
 	// Input validation
 	configs := createConfigsModelFromEnvs()
@@ -172,13 +261,15 @@ func main() {
 					os.Exit(1)
 				}
 			}
+			avdPathExists = false
+			iniPathExists = false
 			log.Donef("- Done")
 		}
 	}
 
 	// create emulator
 	{
-		if (!iniPathExists && !avdPathExists) || configs.Overwrite == "true" {
+		if !iniPathExists || !avdPathExists {
 			fmt.Println()
 			log.Infof("Create AVD")
 
@@ -207,6 +298,15 @@ func main() {
 
 			if configs.Resolution != "" {
 				avdConfig.Properties.Apply("skin.name", configs.Resolution)
+			} else {
+				if avdConfig.Properties.Get("skin.name", "") == "" {
+					width := avdConfig.Properties.Get("hw.lcd.width", "")
+					height := avdConfig.Properties.Get("hw.lcd.height", "")
+
+					if width != "" && height != "" {
+						avdConfig.Properties.Apply("skin.name", fmt.Sprintf("%sx%s", width, height))
+					}
+				}
 			}
 			if configs.Density != "" {
 				avdConfig.Properties.Apply("hw.lcd.density", configs.Density)
@@ -218,8 +318,9 @@ func main() {
 
 			// ensure width and height are matching orientation
 			{
-				if avdConfig.Properties.Get("skin.name") != "" {
-					res, err := ensureResolutionOrientation(configs.Resolution, configs.Orientation)
+				skin := avdConfig.Properties.Get("skin.name", "")
+				if skin != "" {
+					res, err := ensureResolutionOrientation(skin, configs.Orientation)
 					if err != nil {
 						failf("Failed to ensure device resolution, error: %s", err)
 					}
@@ -306,93 +407,4 @@ func main() {
 
 		log.Donef("- Done")
 	}
-}
-
-func runningDeviceInfos(androidHome string) (map[string]string, error) {
-	cmd := command.New(filepath.Join(androidHome, "platform-tools/adb"), "devices")
-	out, err := cmd.RunAndReturnTrimmedCombinedOutput()
-	if err != nil {
-		return map[string]string{}, fmt.Errorf("command failed, error: %s", err)
-	}
-
-	// List of devices attached
-	// emulator-5554	device
-	deviceListItemPattern := `^(?P<emulator>emulator-\d*)[\s+](?P<state>.*)`
-	deviceListItemRegexp := regexp.MustCompile(deviceListItemPattern)
-
-	deviceStateMap := map[string]string{}
-
-	scanner := bufio.NewScanner(strings.NewReader(out))
-	for scanner.Scan() {
-		line := scanner.Text()
-		matches := deviceListItemRegexp.FindStringSubmatch(line)
-		if len(matches) == 3 {
-			serial := matches[1]
-			state := matches[2]
-
-			deviceStateMap[serial] = state
-		}
-
-	}
-	if scanner.Err() != nil {
-		return map[string]string{}, fmt.Errorf("scanner failed, error: %s", err)
-	}
-
-	return deviceStateMap, nil
-}
-
-func failf(msg string, args ...interface{}) {
-	log.Errorf(msg, args...)
-	os.Exit(1)
-}
-
-func currentlyStartedDeviceSerial(alreadyRunningDeviceInfos, currentlyRunningDeviceInfos map[string]string) string {
-	startedSerial := ""
-
-	for serial := range currentlyRunningDeviceInfos {
-		_, found := alreadyRunningDeviceInfos[serial]
-		if !found {
-			startedSerial = serial
-			break
-		}
-	}
-
-	if len(startedSerial) > 0 {
-		state := currentlyRunningDeviceInfos[startedSerial]
-		if state == "device" {
-			return startedSerial
-		}
-	}
-
-	return ""
-}
-
-func ensureResolutionOrientation(res, orientation string) (string, error) {
-	sides := strings.Split(res, "x")
-
-	if len(sides) != 2 {
-		return "", fmt.Errorf("Invalid resolution format: %s", res)
-	}
-
-	a, err := strconv.Atoi(sides[0])
-	if err != nil {
-		return "", err
-	}
-
-	b, err := strconv.Atoi(sides[1])
-	if err != nil {
-		return "", err
-	}
-
-	if strings.ToLower(orientation) == "portrait" {
-		if a < b {
-			return fmt.Sprintf("%dx%d", a, b), nil
-		}
-		return fmt.Sprintf("%dx%d", b, a), nil
-	}
-
-	if a > b {
-		return fmt.Sprintf("%dx%d", a, b), nil
-	}
-	return fmt.Sprintf("%dx%d", b, a), nil
 }

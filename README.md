@@ -1,8 +1,7 @@
 
-# My Awesome Go Step
+# AVD Manager step
 
-My Awesome Go Step is a solid starting code base for
-a new Step.
+Create and run Android Virtual Devices
 
 
 ## How to use this Step

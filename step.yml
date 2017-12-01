@@ -114,16 +114,16 @@ inputs:
     opts:
       category: Customize
       title: "Resolution"
-      summary: Set the device's display resolution.
-      description: Set the device's display resolution.
+      summary: Set the device's display resolution. This field will override the device profile's default resolution, if you need the device profile's default resolution leave this field empty.
+      description: Set the device's display resolution. This field will override the device profile's default resolution, if you need the device profile's default resolution leave this field empty.
       is_expand: true
       is_required: false
   - density: 120
     opts:
       category: Customize
       title: "Density"
-      summary: Set the device's display density.
-      description: Set the device's display density.
+      summary: Set the device's display density. This field will override the device profile's default density, if you need the device profile's default density leave this field empty.
+      description: Set the device's display density. This field will override the device profile's default density, if you need the device profile's default density leave this field empty.
       is_expand: true
       is_required: false
   - emulator_id: "emulator"
