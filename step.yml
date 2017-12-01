@@ -1,6 +1,6 @@
 title: "AVD Manager"
-summary: Create and run Android Virtual Devices
-description: Create and run Android Virtual Devices
+summary: Create and run Android Virtual Device
+description: Create and run Android Virtual Device
 website: https://github.com/bitrise-steplib/steps-avd-manager
 source_code_url: https://github.com/bitrise-steplib/steps-avd-manager
 support_url: https://github.com/bitrise-steplib/steps-avd-manager/issues
@@ -8,7 +8,6 @@ host_os_tags:
   - osx-10.10
 project_type_tags:
   - android
-  - xamarin
 type_tags:
   - script
 is_requires_admin_user: true
