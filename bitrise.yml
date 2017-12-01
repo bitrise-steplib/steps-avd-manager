@@ -393,6 +393,11 @@ workflows:
                 exit 1
               fi
     - wait-for-android-emulator: {}
+    - script:
+        inputs:
+        - content: |
+              #!/bin/bash
+              sleep 20
 
   _take_screenshot:
     steps:
