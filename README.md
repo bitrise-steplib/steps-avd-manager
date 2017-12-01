@@ -1,11 +1,7 @@
-**DEPRECATED**, please use the [`bitrise :step create` Bitrise CLI plugin](https://discuss.bitrise.io/t/step-create-plugin-quickly-generate-a-new-step/1609) and its built in template instead (https://github.com/bitrise-core/bitrise-plugins-step/tree/master/create/templates)
 
----
+# AVD Manager step
 
-# My Awesome Go Step
-
-My Awesome Go Step is a solid starting code base for
-a new Step.
+Create and run Android Virtual Devices
 
 
 ## How to use this Step
