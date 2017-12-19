@@ -139,7 +139,7 @@ inputs:
         hw.camera.front=emulated
         hw.keyboard=yes
         hw.gpu.enabled=true
-        hw.gpu.mode=swiftshader
+        hw.gpu.mode=host
         hw.ramSize=1536
         runtime.network.latency=none
         runtime.network.speed=full
@@ -200,7 +200,7 @@ inputs:
       value_options:
       - "true"
       - "false"
-  - custom_command_flags: "-no-window -no-audio -debug-init"
+  - custom_command_flags: "-no-window -no-audio -debug-init -gpu swiftshader"
     opts:
       category: Customize
       title: "Start AVD command flags"
