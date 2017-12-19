@@ -134,12 +134,12 @@ inputs:
       is_expand: true
       is_required: true
   - custom_hw_config: |-
-        disk.dataPartition.size=800M
+        disk.dataPartition.size=1024M
         hw.camera.back=emulated
         hw.camera.front=emulated
         hw.keyboard=yes
         hw.gpu.enabled=true
-        hw.gpu.mode=host
+        hw.gpu.mode=swiftshader
         hw.ramSize=1536
         runtime.network.latency=none
         runtime.network.speed=full
@@ -147,7 +147,7 @@ inputs:
         skin.dynamic=yes
         skin.path=_no_skin
         skin.path.backup=_no_skin
-        vm.heapSize=256
+        vm.heapSize=384
     opts:
       category: Customize
       title: "Custom hardware config"
@@ -200,7 +200,7 @@ inputs:
       value_options:
       - "true"
       - "false"
-  - custom_command_flags: "-no-window -no-audio -debug-init -gpu swiftshader"
+  - custom_command_flags: "-no-window -no-audio -debug-init"
     opts:
       category: Customize
       title: "Start AVD command flags"
