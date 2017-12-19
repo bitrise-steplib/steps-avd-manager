@@ -134,7 +134,7 @@ inputs:
       is_expand: true
       is_required: true
   - custom_hw_config: |-
-        disk.dataPartition.size=1024M
+        disk.dataPartition.size=800M
         hw.camera.back=emulated
         hw.camera.front=emulated
         hw.keyboard=yes
@@ -147,7 +147,7 @@ inputs:
         skin.dynamic=yes
         skin.path=_no_skin
         skin.path.backup=_no_skin
-        vm.heapSize=384
+        vm.heapSize=256
     opts:
       category: Customize
       title: "Custom hardware config"
