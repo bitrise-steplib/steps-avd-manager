@@ -219,11 +219,17 @@ func main() {
 
 	// update ensure the new sdkmanager, avdmanager
 	{
-		requiredSDKPackages := []string{"emulator", "tools", "platform-tools", fmt.Sprintf("system-images;android-%s;%s;%s", configs.Version, configs.Tag, configs.Abi)}
+		requiredSDKPackages := []string{"tools", "platform-tools", fmt.Sprintf("system-images;android-%s;%s;%s", configs.Version, configs.Tag, configs.Abi)}
 
 		log.Infof("Ensure sdk packages: %v", requiredSDKPackages)
 
 		out, err := command.New(filepath.Join(configs.AndroidHome, "tools/bin/sdkmanager"), requiredSDKPackages...).RunAndReturnTrimmedCombinedOutput()
+		if err != nil {
+			failf("Failed to update emulator sdk package, error: %s, output: %s", err, out)
+		}
+
+		// getting emulator from different channel
+		out, err = command.New(filepath.Join(configs.AndroidHome, "tools/bin/sdkmanager"), "emulator", "--channel=3").RunAndReturnTrimmedCombinedOutput()
 		if err != nil {
 			failf("Failed to update emulator sdk package, error: %s, output: %s", err, out)
 		}
