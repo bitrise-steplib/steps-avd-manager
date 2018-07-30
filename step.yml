@@ -27,8 +27,8 @@ inputs:
   - profile: "Nexus 5X"
     opts:
       title: "Device Profile"
-      summary: Set the device profile to create the new AVD. This profile contains all the parameters of the devices. To see the complete list of available profiles please use the `avdmanager list device` command.
-      description: Set the device profile to create the new AVD. This profile contains all the parameters of the devices. To see the complete list of available profiles please use the `avdmanager list device` command.
+      summary: Set the device profile to create the new AVD. This profile contains all parameters of the devices. To see the complete list of available profiles, please use the `avdmanager list device` command.
+      description: Set the device profile to create the new AVD. This profile contains all parameters of the devices. To see the complete list of available profiles, please use the `avdmanager list device` command.
       is_expand: true
       is_required: true
       value_options:
@@ -70,8 +70,8 @@ inputs:
   - version: 26
     opts:
       title: "Android API Level"
-      summary: The device will run with the specified version of android.
-      description: The device will run with the specified version of android.
+      summary: The device will run with the specified Android version.
+      description: The device will run with the specified Android version.
       is_expand: true
       is_required: true
   - tag: google_apis
@@ -91,8 +91,8 @@ inputs:
     opts:
       category: Customize
       title: "Verbose Mode"
-      summary: If set to `true` then the step will print emulator logs
-      description: If set to `true` then the step will print emulator logs
+      summary: If set to `true`, then the step will print emulator logs.
+      description: If set to `true`, then the step will print emulator logs.
       is_expand: true
       is_required: true
       value_options:
@@ -113,24 +113,24 @@ inputs:
     opts:
       category: Customize
       title: "Resolution"
-      summary: Set the device's display resolution. This field will override the device profile's default resolution, if you need the device profile's default resolution leave this field empty.
-      description: Set the device's display resolution. This field will override the device profile's default resolution, if you need the device profile's default resolution leave this field empty.
+      summary: Set the display resolution of the device. This field will override the default resolution of the device profile. If you need the default resolution of the device profile, leave this field empty.
+      description: Set the display resolution of the device. This field will override the default resolution of the device profile. If you need the default resolution of the device profile, leave this field empty.
       is_expand: true
       is_required: false
   - density: 120
     opts:
       category: Customize
       title: "Density"
-      summary: Set the device's display density. This field will override the device profile's default density, if you need the device profile's default density leave this field empty.
-      description: Set the device's display density. This field will override the device profile's default density, if you need the device profile's default density leave this field empty.
+      summary: Set the display density of the device. This field will override the default density of the device profile. If you need the default density of the device profile, leave this field empty.
+      description: Set the display density of the device. This field will override the default density of the device profile. If you need the default density of the device profile, leave this field empty.
       is_expand: true
       is_required: false
   - emulator_id: "emulator"
     opts:
       category: Customize
       title: "ID"
-      summary: Set the device's ID. (This will be the name under $HOME/.android/avd/)
-      description: Set the device's ID. (This will be the name under $HOME/.android/avd/)
+      summary: Set the device ID. (This will be the name under $HOME/.android/avd/)
+      description: Set the device ID. (This will be the name under $HOME/.android/avd/)
       is_expand: true
       is_required: true
   - custom_hw_config: |-
@@ -193,8 +193,8 @@ inputs:
     opts:
       category: Customize
       title: "Overwrite"
-      summary: Overwrite AVD images if already exists.
-      description: Overwrite AVD images if already exists.
+      summary: Overwrite AVD images if already exist.
+      description: Overwrite AVD images if already exist.
       is_expand: true
       is_required: true
       value_options:
@@ -212,8 +212,8 @@ inputs:
     opts:
       category: Customize
       title: "Emulator ABI"
-      summary: Select which ABI to use running the emulator. Availability depends on API level. Please use `sdkmanager --list` command to see the available ABIs.
-      description: Select which ABI to use running the emulator. Availability depends on API level. Please use `sdkmanager --list` command to see the available ABIs.
+      summary: Select which ABI to use to run the emulator. Availability depends on API level. Please use `sdkmanager --list` command to see the available ABIs.
+      description: Select which ABI to use to run the emulator. Availability depends on API level. Please use `sdkmanager --list` command to see the available ABIs.
       is_expand: true
       is_required: true
       value_options:
