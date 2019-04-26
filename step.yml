@@ -222,6 +222,19 @@ inputs:
       - "arm64-v8a"
       - "x86_64"
       - "mips"
+  - emulator_channel: "3"
+    opts:
+      category: Customize
+      title: "Emulator channel"
+      summary: Select which channel to use with `sdkmanager` to fetch `emulator` package. Available channels are 0 (Stable), 1 (Beta), 2 (Dev), and 3 (Canary).
+      description: Select which channel to use with `sdkmanager` to fetch `emulator` package. Available channels are 0 (Stable), 1 (Beta), 2 (Dev), and 3 (Canary).
+      is_expand: true
+      is_required: true
+      value_options:
+        - "0"
+        - "1"
+        - "2"
+        - "3"
 outputs:
   - BITRISE_EMULATOR_SERIAL:
     opts:

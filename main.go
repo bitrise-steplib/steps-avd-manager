@@ -35,6 +35,7 @@ type ConfigsModel struct {
 	Abi                string
 	Profile            string
 	Verbose            string
+	EmulatorChannel    string
 }
 
 func createConfigsModelFromEnvs() ConfigsModel {
@@ -52,6 +53,7 @@ func createConfigsModelFromEnvs() ConfigsModel {
 		Abi:                os.Getenv("emulator_abi"),
 		Profile:            os.Getenv("profile"),
 		Verbose:            os.Getenv("verbose_mode"),
+		EmulatorChannel:    os.Getenv("emulator_channel"),
 	}
 }
 
@@ -68,6 +70,7 @@ func (configs ConfigsModel) print() {
 	log.Printf("- CustomCommandFlags: %s", configs.CustomCommandFlags)
 	log.Printf("- Overwrite: %s", configs.Overwrite)
 	log.Printf("- CustomConfig:\n%s", configs.CustomConfig)
+	log.Printf("- EmulatorChannel: %s", configs.EmulatorChannel)
 }
 
 func (configs ConfigsModel) validate() error {
@@ -109,6 +112,9 @@ func (configs ConfigsModel) validate() error {
 	}
 	if err := input.ValidateWithOptions(configs.Abi, "x86", "armeabi-v7a", "arm64-v8a", "x86_64", "mips"); err != nil {
 		return fmt.Errorf("Abi, %s", err)
+	}
+	if err := input.ValidateWithOptions(configs.EmulatorChannel, "0", "1", "2", "3"); err != nil {
+		return fmt.Errorf("EmulatorChannel, %s", err)
 	}
 	return nil
 }
@@ -229,7 +235,7 @@ func main() {
 		}
 
 		// getting emulator from different channel
-		out, err = command.New(filepath.Join(configs.AndroidHome, "tools/bin/sdkmanager"), "emulator", "--channel=3").RunAndReturnTrimmedCombinedOutput()
+		out, err = command.New(filepath.Join(configs.AndroidHome, "tools/bin/sdkmanager"), "emulator", fmt.Sprintf("--channel=%s", configs.EmulatorChannel)).RunAndReturnTrimmedCombinedOutput()
 		if err != nil {
 			failf("Failed to update emulator sdk package, error: %s, output: %s", err, out)
 		}
