@@ -250,8 +250,7 @@ func main() {
 
 	for _, phase := range []phase{
 		{"Update SDK Manager",
-			command.New(sdkManagerPath,
-				"--verbose", "--update"),
+			command.New("sh", "-c", "sudo "+sdkManagerPath+" --verbose --update"),
 			nil,
 		},
 
