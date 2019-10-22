@@ -15,14 +15,12 @@ workflows:
     before_run:
     - _in-deploy-dir
     after_run:
-    - avd-26-scr
-    - avd-21-scr
-    - avd-22-scr
-    - avd-19-scr
-    - avd-23-scr
     - avd-24-scr
     - avd-25-scr
+    - avd-26-scr
     - avd-27-scr
+    - avd-28-scr
+    - avd-29-scr
 
   avd-26-run-tests:
     envs:
@@ -244,30 +242,16 @@ workflows:
     - _start-emulator
     - _take_screenshot
     - _kill-emulator
-  avd-23-scr:
+  avd-28-scr:
     envs:
     - EMU_VER: 23
     after_run:
     - _start-emulator
     - _take_screenshot
     - _kill-emulator
-  avd-22-scr:
+  avd-29-scr:
     envs:
     - EMU_VER: 22
-    after_run:
-    - _start-emulator
-    - _take_screenshot
-    - _kill-emulator
-  avd-21-scr:
-    envs:
-    - EMU_VER: 21
-    after_run:
-    - _start-emulator
-    - _take_screenshot
-    - _kill-emulator
-  avd-19-scr:
-    envs:
-    - EMU_VER: 19
     after_run:
     - _start-emulator
     - _take_screenshot

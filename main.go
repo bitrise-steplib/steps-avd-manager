@@ -292,7 +292,6 @@ func main() {
 		},
 	} {
 		log.Infof(phase.name)
-		fmt.Println()
 		log.Donef("$ %s", phase.command.PrintableCommandArgs())
 
 		if cfg.Verbose {
