@@ -49,7 +49,7 @@ inputs:
       - "android-wear"
       - "android-tv"
       - "default"
-  - verbose_mode: "false"
+  - verbose: "false"
     opts:
       category: Debug
       title: "Verbose Mode"

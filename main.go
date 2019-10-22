@@ -23,11 +23,12 @@ type config struct {
 	APILevel          int    `env:"api_level,required"`
 	Tag               string `env:"tag,required"`
 	DeviceProfile     string `env:"profile,required"`
-	WaitForBoot       bool   `env:"wait_for_boot,required"`
 	CreateCommandArgs string `env:"create_command_flags"`
 	StartCommandArgs  string `env:"start_command_flags"`
 	Verbose           bool   `env:"verbose,required"`
 	ID                string `env:"emulator_id,required"`
+	// WaitForBoot       bool   `env:"wait_for_boot,required"`
+
 	//Resolution         string
 	//Orientation        string
 	//CustomConfig       string
