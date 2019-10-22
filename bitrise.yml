@@ -384,7 +384,7 @@ workflows:
     - path::./:
         title: Step Test
         inputs:
-        - version: $EMU_VER
+        - api_level: $EMU_VER
     - script:
         inputs:
         - content: |
