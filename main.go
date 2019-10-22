@@ -255,8 +255,7 @@ func main() {
 		},
 
 		{"Update emulator and system-image packages",
-			command.New(sdkManagerPath,
-				"--verbose", "emulator", pkg).
+			command.New("sh", "-c", "sudo "+sdkManagerPath+" --verbose emulator "+pkg).
 				SetStdin(strings.NewReader(yes)), // hitting yes in case it waits for accepting license
 			nil,
 		},
