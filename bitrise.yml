@@ -403,7 +403,7 @@ workflows:
         - content: |
               #!/bin/bash
               set -x
-              pkill -f emulator-headless
+              adb -s $BITRISE_EMULATOR_SERIAL emu kill
 
   # go-tests:
   #   before_run:
