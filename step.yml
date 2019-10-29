@@ -56,7 +56,7 @@ inputs:
       summary: Set the device's ID. (This will be the name under $HOME/.android/avd/)
       description: Set the device's ID. (This will be the name under $HOME/.android/avd/)
       is_required: true
-  - create_command_flags: ""
+  - create_command_flags: "--sdcard 512M"
     opts:
       category: Debug
       title: "Create AVD command flags"

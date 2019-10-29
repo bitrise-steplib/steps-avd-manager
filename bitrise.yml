@@ -10,13 +10,13 @@ workflows:
     before_run:
     - _in-deploy-dir
     after_run:
-    - _avd-23-scr
-    - _avd-24-scr
-    - _avd-25-scr
-    - _avd-26-scr
-    - _avd-27-scr
-    - _avd-28-scr
     - _avd-29-scr
+    - _avd-28-scr
+    - _avd-27-scr
+    - _avd-26-scr
+    - _avd-25-scr
+    - _avd-24-scr
+    - _avd-23-scr
 
   _avd-23-scr:
     envs:
