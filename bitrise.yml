@@ -95,6 +95,7 @@ workflows:
         inputs:
         - content: |
               #!/bin/bash
+              sleep 15
               $ANDROID_HOME/platform-tools/adb shell "screencap -p /sdcard/screen.png"
               $ANDROID_HOME/platform-tools/adb pull "/sdcard/screen.png" "./screen_$EMU_VER.png"
 
