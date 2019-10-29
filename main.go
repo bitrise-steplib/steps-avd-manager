@@ -25,7 +25,6 @@ type config struct {
 	DeviceProfile     string `env:"profile,required"`
 	CreateCommandArgs string `env:"create_command_flags"`
 	StartCommandArgs  string `env:"start_command_flags"`
-	Verbose           bool   `env:"verbose,required"`
 	ID                string `env:"emulator_id,required"`
 	// WaitForBoot       bool   `env:"wait_for_boot,required"`
 
@@ -209,14 +208,6 @@ type phase struct {
 	customExecutor func(cmd *command.Model) func() (string, error)
 }
 
-//rn commands:
-//sudo $ANDROID_HOME/tools/bin/sdkmanager --update
-//$ANDROID_HOME/tools/bin/sdkmanager --install "emulator"
-//$ANDROID_HOME/tools/bin/sdkmanager --install "system-images;android-29;google_apis;x86"
-//echo "no" | $ANDROID_HOME/tools/bin/avdmanager --verbose create avd --force --name "pixel" --device "pixel" --package "system-images;android-29;google_apis;x86" --tag "google_apis" --abi "x86"
-//$ANDROID_HOME/emulator/emulator-headless  &> /tmp/log.txt &
-//sleep 160
-
 func main() {
 	var cfg config
 	if err := stepconf.Parse(&cfg); err != nil {
@@ -234,8 +225,9 @@ func main() {
 		sdkManagerPath = filepath.Join(cfg.AndroidHome, "tools/bin/sdkmanager")
 		avdManagerPath = filepath.Join(cfg.AndroidHome, "tools/bin/avdmanager")
 		emulatorPath   = filepath.Join(cfg.AndroidHome, "emulator/emulator-headless")
-		pkg            = fmt.Sprintf("system-images;android-%d;%s;x86", cfg.APILevel, cfg.Tag)
-		yes, no        = strings.Repeat("yes\n", 20), strings.Repeat("no\n", 20)
+
+		pkg     = fmt.Sprintf("system-images;android-%d;%s;x86", cfg.APILevel, cfg.Tag)
+		yes, no = strings.Repeat("yes\n", 20), strings.Repeat("no\n", 20)
 	)
 
 	// parse custom flags
@@ -250,12 +242,12 @@ func main() {
 
 	for _, phase := range []phase{
 		{"Update SDK Manager",
-			command.New("sh", "-c", "sudo "+sdkManagerPath+" --verbose --update"),
+			command.New(sdkManagerPath, "--verbose", "--update"),
 			nil,
 		},
 
 		{"Update emulator and system-image packages",
-			command.New("sh", "-c", "sudo "+sdkManagerPath+" --verbose emulator '"+pkg+"'").
+			command.New(sdkManagerPath, "--verbose", "emulator", pkg).
 				SetStdin(strings.NewReader(yes)), // hitting yes in case it waits for accepting license
 			nil,
 		},
@@ -293,16 +285,12 @@ func main() {
 		log.Infof(phase.name)
 		log.Donef("$ %s", phase.command.PrintableCommandArgs())
 
-		if cfg.Verbose {
-			phase.command.SetStdout(os.Stdout)
-		}
-
-		var executor = phase.command.RunAndReturnTrimmedCombinedOutput
+		var exec = phase.command.RunAndReturnTrimmedCombinedOutput
 		if e := phase.customExecutor; e != nil {
-			executor = e(phase.command)
+			exec = e(phase.command)
 		}
 
-		if out, err := executor(); err != nil {
+		if out, err := exec(); err != nil {
 			failf("Failed to run phase, error: %s, output: %s", err, out)
 		}
 

@@ -49,16 +49,6 @@ inputs:
       - "android-wear"
       - "android-tv"
       - "default"
-  - verbose: "false"
-    opts:
-      category: Debug
-      title: "Verbose Mode"
-      summary: If set to `true` then the step will print emulator logs
-      description: If set to `true` then the step will print emulator logs
-      is_required: true
-      value_options:
-      - "true"
-      - "false"
   - emulator_id: "emulator"
     opts:
       category: Debug
