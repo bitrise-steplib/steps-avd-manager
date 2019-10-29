@@ -241,10 +241,10 @@ func main() {
 	}
 
 	for _, phase := range []phase{
-		{"Update SDK Manager",
-			command.New(sdkManagerPath, "--verbose", "--update"),
-			nil,
-		},
+		// {"Update SDK Manager",
+		// 	command.New(sdkManagerPath, "--verbose", "--update"),
+		// 	nil,
+		// },
 
 		{"Update emulator and system-image packages",
 			command.New(sdkManagerPath, "--verbose", "emulator", pkg).
