@@ -1,390 +1,84 @@
-format_version: 1.4.0
+format_version: 9
 default_step_lib_source: https://github.com/bitrise-io/bitrise-steplib.git
-
-app:
-  envs:
-  - STEP_VERSION: 0.9.2
 
 workflows:
   test:
     before_run:
-    - go-tests
+    - audit-this-step
+    after_run:
     - screenshots
+    steps:
+    - go-list:
+    - golint:
+    - errcheck:
+    - go-test:
 
   screenshots:
     before_run:
     - _in-deploy-dir
     after_run:
-    - avd-26-scr
-    - avd-21-scr
-    - avd-22-scr
-    - avd-19-scr
-    - avd-23-scr
-    - avd-24-scr
-    - avd-25-scr
-    - avd-27-scr
+    - _avd-29-scr
+    - _avd-28-scr
+    - _avd-27-scr
+    - _avd-26-scr
+    - _avd-25-scr
+    - _avd-24-scr
+    - _avd-23-scr
 
-  avd-26-run-tests:
-    envs:
-    - EMU_VER: 26
-    before_run:
-    - _prepare-test
-    - _start-emulator
-    after_run:
-    - _kill-emulator
-    steps:
-    - script:
-        inputs:
-        - content: |-
-            #!/bin/bash
-            bitrise run run-test-1
-            bitrise run run-test-3
-            bitrise run run-test-4
-            bitrise run run-test-5
-            bitrise run run-test-6
-            bitrise run run-test-7
-            bitrise run run-test-8
-            bitrise run run-test-9
-            bitrise run run-test-10
-            bitrise run run-test-11
-
-  avd-27-run-tests:
-    envs:
-    - EMU_VER: 27
-    before_run:
-    - _prepare-test
-    - _start-emulator
-    after_run:
-    - _kill-emulator
-    steps:
-    - script:
-        inputs:
-        - content: |-
-            #!/bin/bash
-            bitrise run run-test-1
-            bitrise run run-test-3
-            bitrise run run-test-4
-            bitrise run run-test-5
-            bitrise run run-test-6
-            bitrise run run-test-7
-            bitrise run run-test-8
-            bitrise run run-test-9
-            bitrise run run-test-10
-            bitrise run run-test-11
-
-  avd-25-run-tests:
-    envs:
-    - EMU_VER: 25
-    before_run:
-    - _prepare-test
-    - _start-emulator
-    after_run:
-    - _kill-emulator
-    steps:
-    - script:
-        inputs:
-        - content: |-
-            #!/bin/bash
-            bitrise run run-test-1
-            bitrise run run-test-3
-            bitrise run run-test-4
-            bitrise run run-test-5
-            bitrise run run-test-6
-            bitrise run run-test-7
-            bitrise run run-test-8
-            bitrise run run-test-9
-            bitrise run run-test-10
-            bitrise run run-test-11
-
-  avd-24-run-tests:
-    envs:
-    - EMU_VER: 24
-    before_run:
-    - _prepare-test
-    - _start-emulator
-    after_run:
-    - _kill-emulator
-    steps:
-    - script:
-        inputs:
-        - content: |-
-            #!/bin/bash
-            bitrise run run-test-1
-            bitrise run run-test-3
-            bitrise run run-test-4
-            bitrise run run-test-5
-            bitrise run run-test-6
-            bitrise run run-test-7
-            bitrise run run-test-8
-            bitrise run run-test-9
-            bitrise run run-test-10
-            bitrise run run-test-11
-
-  avd-23-run-tests:
-    envs:
-    - EMU_VER: 23
-    before_run:
-    - _prepare-test
-    - _start-emulator
-    after_run:
-    - _kill-emulator
-    steps:
-    - script:
-        inputs:
-        - content: |-
-            #!/bin/bash
-            bitrise run run-test-1
-            bitrise run run-test-3
-            bitrise run run-test-4
-            bitrise run run-test-5
-            bitrise run run-test-6
-            bitrise run run-test-7
-            bitrise run run-test-8
-            bitrise run run-test-9
-            bitrise run run-test-10
-            bitrise run run-test-11
-
-  avd-22-run-tests:
-    envs:
-    - EMU_VER: 22
-    before_run:
-    - _prepare-test
-    - _start-emulator
-    after_run:
-    - _kill-emulator
-    steps:
-    - script:
-        inputs:
-        - content: |-
-            #!/bin/bash
-            bitrise run run-test-1
-            bitrise run run-test-3
-            bitrise run run-test-4
-            bitrise run run-test-5
-            bitrise run run-test-6
-            bitrise run run-test-7
-            bitrise run run-test-8
-            bitrise run run-test-9
-            bitrise run run-test-10
-            bitrise run run-test-11
-
-  avd-21-run-tests:
-    envs:
-    - EMU_VER: 21
-    before_run:
-    - _prepare-test
-    - _start-emulator
-    after_run:
-    - _kill-emulator
-    steps:
-    - script:
-        inputs:
-        - content: |-
-            #!/bin/bash
-            bitrise run run-test-1
-            bitrise run run-test-3
-            bitrise run run-test-4
-            bitrise run run-test-5
-            bitrise run run-test-6
-            bitrise run run-test-7
-            bitrise run run-test-8
-            bitrise run run-test-9
-            bitrise run run-test-10
-            bitrise run run-test-11
-
-  avd-19-run-tests:
-    envs:
-    - EMU_VER: 19
-    before_run:
-    - _prepare-test
-    - _start-emulator
-    after_run:
-    - _kill-emulator
-    steps:
-    - script:
-        inputs:
-        - content: |-
-            #!/bin/bash
-            bitrise run run-test-1
-            bitrise run run-test-3
-            bitrise run run-test-4
-            bitrise run run-test-5
-            bitrise run run-test-6
-            bitrise run run-test-7
-            bitrise run run-test-8
-            bitrise run run-test-9
-            bitrise run run-test-10
-            bitrise run run-test-11
-
-  avd-27-scr:
-    envs:
-    - EMU_VER: 27
-    after_run:
-    - _start-emulator
-    - _take_screenshot
-    - _kill-emulator
-  avd-26-scr:
-    envs:
-    - EMU_VER: 26
-    after_run:
-    - _start-emulator
-    - _take_screenshot
-    - _kill-emulator
-  avd-25-scr:
-    envs:
-    - EMU_VER: 25
-    after_run:
-    - _start-emulator
-    - _take_screenshot
-    - _kill-emulator
-  avd-24-scr:
-    envs:
-    - EMU_VER: 24
-    after_run:
-    - _start-emulator
-    - _take_screenshot
-    - _kill-emulator
-  avd-23-scr:
+  _avd-23-scr:
     envs:
     - EMU_VER: 23
     after_run:
-    - _start-emulator
     - _take_screenshot
-    - _kill-emulator
-  avd-22-scr:
+
+  _avd-24-scr:
     envs:
-    - EMU_VER: 22
+    - EMU_VER: 24
     after_run:
-    - _start-emulator
     - _take_screenshot
-    - _kill-emulator
-  avd-21-scr:
+
+  _avd-25-scr:
     envs:
-    - EMU_VER: 21
+    - EMU_VER: 25
     after_run:
-    - _start-emulator
     - _take_screenshot
-    - _kill-emulator
-  avd-19-scr:
+
+  _avd-26-scr:
     envs:
-    - EMU_VER: 19
+    - EMU_VER: 26
     after_run:
-    - _start-emulator
     - _take_screenshot
-    - _kill-emulator
+
+  _avd-27-scr:
+    envs:
+    - EMU_VER: 27
+    after_run:
+    - _take_screenshot
+
+  _avd-28-scr:
+    envs:
+    - EMU_VER: 28
+    after_run:
+    - _take_screenshot
+
+  _avd-29-scr:
+    envs:
+    - EMU_VER: 29
+    after_run:
+    - _take_screenshot
 
   _in-deploy-dir:
     steps:
     - change-workdir:
         inputs:
         - path: $BITRISE_DEPLOY_DIR
-  
-  _prepare-test:
-    steps:
-    - git-clone@3.5.3:
-        run_if: true
-        inputs:
-        - repository_url: https://github.com/googlesamples/android-testing.git
-        - commit: 9534309e0d09d31516cab29469cb31d7fad41ab7
-        - clone_into_dir: "$BITRISE_SOURCE_DIR/_tmp"
-        - tag: 
-        - branch:
-        - branch_dest: 
-        - pull_request_id: 
-        - pull_request_repository_url: 
-        - pull_request_merge_branch: 
-
-  run-test-1:
-    envs:
-    - PROJECTNAME: BasicSample
-    after_run:
-    - _run-a-test
-    steps:
-    - script:
-        inputs:
-        - content: |-
-            #!/bin/bash
-            sleep 20
-
-  run-test-3:
-    envs:
-    - PROJECTNAME: CustomMatcherSample
-    after_run:
-    - _run-a-test
-
-  run-test-4:
-    envs:
-    - PROJECTNAME: DataAdapterSample
-    after_run:
-    - _run-a-test
-
-  run-test-5:
-    envs:
-    - PROJECTNAME: IdlingResourceSample
-    after_run:
-    - _run-a-test
-
-  run-test-6:
-    envs:
-    - PROJECTNAME: IntentsAdvancedSample
-    after_run:
-    - _run-a-test
-
-  run-test-7:
-    envs:
-    - PROJECTNAME: IntentsBasicSample
-    after_run:
-    - _run-a-test
-
-  run-test-8:
-    envs:
-    - PROJECTNAME: MultiProcessSample
-    after_run:
-    - _run-a-test
-
-  run-test-9:
-    envs:
-    - PROJECTNAME: MultiWindowSample
-    after_run:
-    - _run-a-test
-
-  run-test-10:
-    envs:
-    - PROJECTNAME: RecyclerViewSample
-    after_run:
-    - _run-a-test
-
-  run-test-11:
-    envs:
-    - PROJECTNAME: WebBasicSample
-    after_run:
-    - _run-a-test
-
-  _run-a-test:
-    steps:
-    - gradle-runner@1.8.0:
-        is_always_run: true
-        inputs:
-        - gradle_file: "./_tmp/ui/espresso/$PROJECTNAME/build.gradle"
-        - gradle_task: connectedDebugAndroidTest
-        - gradlew_path: "./_tmp/ui/espresso/$PROJECTNAME/gradlew"
-        - cache_level: none
-        - apk_file_include_filter: dontexport
-        - test_apk_file_include_filter: dontexport
-    - script:
-        is_always_run: true
-        inputs:
-        - content: |
-              #!/bin/bash
-              set -ex
-              echo "Test: $PROJECTNAME, Failed: $BITRISE_BUILD_STATUS" >> "$BITRISE_DEPLOY_DIR/report_$EMU_VER.log"
 
   _start-emulator:
     steps:
     - path::./:
         title: Step Test
         inputs:
-        - version: $EMU_VER
+        - api_level: $EMU_VER
     - script:
         inputs:
         - content: |
@@ -397,20 +91,21 @@ workflows:
                 exit 1
               fi
     - wait-for-android-emulator: {}
-    - script:
-        inputs:
-        - content: |
-              #!/bin/bash
-              sleep 20
 
   _take_screenshot:
+    before_run:
+    - _start-emulator
+    after_run:
+    - _kill-emulator
     steps:
     - script:
         inputs:
         - content: |
               #!/bin/bash
+              sleep 15
               $ANDROID_HOME/platform-tools/adb shell "screencap -p /sdcard/screen.png"
               $ANDROID_HOME/platform-tools/adb pull "/sdcard/screen.png" "./screen_$EMU_VER.png"
+
   _kill-emulator:
     steps:
     - script:
@@ -419,95 +114,7 @@ workflows:
         - content: |
               #!/bin/bash
               set -x
-              pkill -f qemu-system-i386
-
-  go-tests:
-    before_run:
-    - _install-test-tools
-    steps:
-    - script:
-        title: Export go files to test
-        inputs:
-        - content: |-
-            #!/bin/bash
-            set -ex
-            no_vendor_paths="$(go list ./... | grep -v vendor)"
-            envman add --key GOLIST_WITHOUT_VENDOR --value "$no_vendor_paths"
-    - script:
-        title: Err check
-        inputs:
-        - content: |-
-            #!/bin/bash
-            set -ex
-            errcheck -asserts=true -blank=true $GOLIST_WITHOUT_VENDOR
-    - script:
-        title: Go lint
-        inputs:
-        - content: |-
-            #!/bin/bash
-            set -ex
-            while read -r line; do
-              echo "-> Linting: $line"
-              golint_out="$(golint $line)"
-              if [[ "${golint_out}" != "" ]] ; then
-                echo "=> Golint issues found:"
-                echo "${golint_out}"
-                exit 1
-              fi
-            done <<< "$GOLIST_WITHOUT_VENDOR"
-    - script:
-        title: Go test
-        inputs:
-        - content: |-
-            #!/bin/bash
-            set -ex
-            go test ./...
-  _install-test-tools:
-    steps:
-    - script:
-        title: Install required testing tools
-        inputs:
-        - content: |-
-            #!/bin/bash
-            set -ex
-            # Check for unhandled errors
-            go get -u -v github.com/kisielk/errcheck
-            # Go lint
-            go get -u -v github.com/golang/lint/golint
-
-  # ----------------------------------------------------------------
-  # --- Utility workflows
-  godeps-update:
-    title: Godeps update
-    description: |
-      Used for updating bitrise dependencies with godep
-    steps:
-    - script:
-        title: Dependency update
-        inputs:
-        - content: |
-            #!/bin/bash
-            set -ex
-            go get -u -v github.com/tools/godep
-            go get -u -v github.com/davecgh/go-spew/spew
-            go get -u -v github.com/pmezard/go-difflib/difflib
-            rm -rf ./Godeps
-            rm -rf ./vendor
-            go get -t -d ./...
-            godep save ./...
-
-  # ----------------------------------------------------------------
-  # --- workflows to create Release
-  create-release:
-    steps:
-    - script:
-        title:
-        inputs:
-        - content: |
-            #!/bin/bash
-            set -e
-            export CI=true
-            releaseman create --version $STEP_VERSION
+              adb -s $BITRISE_EMULATOR_SERIAL emu kill
 
   # ----------------------------------------------------------------
   # --- workflows to Share this step into a Step Library
@@ -519,43 +126,3 @@ workflows:
             #!/bin/bash
             set -ex
             stepman audit --step-yml ./step.yml
-
-  share-this-step:
-    envs:
-      # if you want to share this step into a StepLib
-      - MY_STEPLIB_REPO_FORK_GIT_URL: $MY_STEPLIB_REPO_FORK_GIT_URL
-      - STEP_ID_IN_STEPLIB: avd-manager
-      - STEP_GIT_VERION_TAG_TO_SHARE: $STEP_VERSION
-      - STEP_GIT_CLONE_URL: https://github.com/bitrise-steplib/steps-avd-manager.git
-    description: |-
-      If this is the first time you try to share a Step you should
-      first call: $ bitrise share
-
-      This will print you a guide, and information about how Step sharing
-      works. Please read it at least once!
-
-      As noted in the Step sharing guide you'll have to fork the
-      StepLib you want to share this step into. Once you're done with forking
-      the repository you should set your own fork's git clone URL
-      in the `.bitrise.secrets.yml` file, or here in the `envs` section,
-      as the value of the `MY_STEPLIB_REPO_FORK_GIT_URL` environment.
-
-      You're now ready to share this Step, just make sure that
-      the `STEP_ID_IN_STEPLIB` and `STEP_GIT_VERION_TAG_TO_SHARE`
-      environments are set to the desired values!
-
-      To share this Step into a StepLib you can just run: $ bitrise run share-this-step
-
-      Once it finishes the only thing left is to actually create a Pull Request,
-      the way described in the guide printed at the end of the process.
-    before_run:
-    - audit-this-step
-    steps:
-    - script:
-        inputs:
-        - content: |-
-            #!/bin/bash
-            set -ex
-            bitrise share start -c ${MY_STEPLIB_REPO_FORK_GIT_URL}
-            bitrise share create --stepid ${STEP_ID_IN_STEPLIB} --tag ${STEP_GIT_VERION_TAG_TO_SHARE} --git ${STEP_GIT_CLONE_URL}
-            bitrise share finish
