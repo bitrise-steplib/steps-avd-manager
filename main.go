@@ -11,21 +11,21 @@ import (
 
 	"github.com/bitrise-io/go-steputils/stepconf"
 	"github.com/bitrise-io/go-steputils/tools"
-	"github.com/kballard/go-shellquote"
-
 	"github.com/bitrise-io/go-utils/command"
 	"github.com/bitrise-io/go-utils/log"
+	"github.com/kballard/go-shellquote"
 )
 
 // config ...
 type config struct {
 	AndroidHome       string `env:"ANDROID_HOME,required"`
 	APILevel          int    `env:"api_level,required"`
-	Tag               string `env:"tag,required"`
+	Tag               string `env:"tag,opt[google_apis,google_apis_playstore,android-wear,android-tv,default]"`
 	DeviceProfile     string `env:"profile,required"`
 	CreateCommandArgs string `env:"create_command_flags"`
 	StartCommandArgs  string `env:"start_command_flags"`
 	ID                string `env:"emulator_id,required"`
+	Abi               string `env:"abi,opt[x86,armeabi-v7a,arm64-v8a,x86_64]"`
 }
 
 func runningDeviceInfos(androidHome string) (map[string]string, error) {
@@ -111,7 +111,7 @@ func main() {
 		avdManagerPath = filepath.Join(cfg.AndroidHome, "tools/bin/avdmanager")
 		emulatorPath   = filepath.Join(cfg.AndroidHome, "emulator/emulator-headless")
 
-		pkg     = fmt.Sprintf("system-images;android-%d;%s;x86", cfg.APILevel, cfg.Tag)
+		pkg     = fmt.Sprintf("system-images;android-%d;%s;%s", cfg.APILevel, cfg.Tag, cfg.Abi)
 		yes, no = strings.Repeat("yes\n", 20), strings.Repeat("no\n", 20)
 	)
 
@@ -139,7 +139,7 @@ func main() {
 				"--device", cfg.DeviceProfile,
 				"--package", pkg,
 				"--tag", cfg.Tag,
-				"--abi", "x86"}, createCustomFlags...)...).
+				"--abi", cfg.Abi}, createCustomFlags...)...).
 				SetStdin(strings.NewReader(no)), // hitting no in case it asks for creating hw profile
 			nil,
 		},

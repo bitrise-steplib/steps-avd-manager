@@ -1,10 +1,17 @@
-format_version: 1.4.0
+format_version: 9
 default_step_lib_source: https://github.com/bitrise-io/bitrise-steplib.git
 
 workflows:
   test:
     before_run:
+    - audit-this-step
+    after_run:
     - screenshots
+    steps:
+    - go-list:
+    - golint:
+    - errcheck:
+    - go-test:
 
   screenshots:
     before_run:

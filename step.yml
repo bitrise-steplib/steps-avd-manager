@@ -6,19 +6,14 @@ source_code_url: https://github.com/bitrise-steplib/steps-avd-manager
 support_url: https://github.com/bitrise-steplib/steps-avd-manager/issues
 host_os_tags:
   - osx-10.10
-project_type_tags:
-  - android
+
 type_tags:
-  - script
+  - utility
+
 is_requires_admin_user: true
 is_always_run: false
 is_skippable: false
-deps:
-  brew:
-  - name: go
-  apt_get:
-  - name: golang
-    bin_name: go
+
 toolkit:
   go:
     package_name: github.com/bitrise-steplib/steps-avd-manager
@@ -49,6 +44,20 @@ inputs:
       - "android-wear"
       - "android-tv"
       - "default"
+  - abi: "x86"
+    opts:	
+      category: Customize	
+      title: "ABI"	
+      summary: Select which ABI to use running the emulator. Availability depends on API level. Please use `sdkmanager --list` command to see the available ABIs.	
+      description: Select which ABI to use running the emulator. Availability depends on API level. Please use `sdkmanager --list` command to see the available ABIs.	
+      is_expand: true	
+      is_required: true	
+      value_options:	
+      - "x86"	
+      - "x86_64"	
+      - "armeabi-v7a"	
+      - "arm64-v8a"	
+      - "mips"
   - emulator_id: "emulator"
     opts:
       category: Debug
@@ -63,7 +72,7 @@ inputs:
       summary: Flags used when running the command to create the emulator.
       description: Flags used when running the command to create the emulator.
       is_required: false
-  - start_command_flags: ""
+  - start_command_flags: "-camera-back none -camera-front none"
     opts:
       category: Debug
       title: "Start AVD command flags"
