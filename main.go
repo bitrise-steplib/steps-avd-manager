@@ -26,6 +26,7 @@ type config struct {
 	StartCommandArgs  string `env:"start_command_flags"`
 	ID                string `env:"emulator_id,required"`
 	Abi               string `env:"abi,opt[x86,armeabi-v7a,arm64-v8a,x86_64]"`
+	EmulatorChannel   string `env:"emulator_channel,opt[0,1,2,3]"`
 }
 
 func runningDeviceInfos(androidHome string) (map[string]string, error) {
@@ -126,8 +127,14 @@ func main() {
 	}
 
 	for _, phase := range []phase{
-		{"Update emulator and system-image packages",
-			command.New(sdkManagerPath, "--verbose", "emulator", pkg).
+		{"Update emulator",
+			command.New(sdkManagerPath, "--verbose", "--channel", cfg.EmulatorChannel, "emulator").
+				SetStdin(strings.NewReader(yes)), // hitting yes in case it waits for accepting license
+			nil,
+		},
+
+		{"Update system-image packages",
+			command.New(sdkManagerPath, "--verbose", pkg).
 				SetStdin(strings.NewReader(yes)), // hitting yes in case it waits for accepting license
 			nil,
 		},
