@@ -46,7 +46,7 @@ inputs:
       - "default"
   - abi: "x86"
     opts:	
-      category: Customize	
+      category: Debug	
       title: "ABI"	
       summary: Select which ABI to use running the emulator. Availability depends on API level. Please use `sdkmanager --list` command to see the available ABIs.	
       description: Select which ABI to use running the emulator. Availability depends on API level. Please use `sdkmanager --list` command to see the available ABIs.	
