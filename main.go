@@ -128,7 +128,7 @@ func main() {
 
 	for _, phase := range []phase{
 		{"Update emulator",
-			command.New(sdkManagerPath, "--verbose", "--channel", cfg.EmulatorChannel, "emulator").
+			command.New(sdkManagerPath, "--verbose", "--channel="+cfg.EmulatorChannel, "emulator").
 				SetStdin(strings.NewReader(yes)), // hitting yes in case it waits for accepting license
 			nil,
 		},
