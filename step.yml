@@ -79,6 +79,19 @@ inputs:
       summary: Flags used when running the command to start the emulator.
       description: Flags used when running the command to start the emulator.
       is_required: false
+  - emulator_channel: "0"
+    opts:
+      category: Debug
+      title: "Emulator channel"
+      summary: Select which channel to use with `sdkmanager` to fetch `emulator` package. Available channels are 0 (Stable), 1 (Beta), 2 (Dev), and 3 (Canary).
+      description: Select which channel to use with `sdkmanager` to fetch `emulator` package. Available channels are 0 (Stable), 1 (Beta), 2 (Dev), and 3 (Canary).
+      is_expand: true
+      is_required: true
+      value_options:
+        - "0"
+        - "1"
+        - "2"
+        - "3"
 
 outputs:
   - BITRISE_EMULATOR_SERIAL:
