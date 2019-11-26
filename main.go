@@ -126,6 +126,13 @@ func main() {
 		failf("Failed to parse start command args, error: %s", err)
 	}
 
+	logFilePath := filepath.Join(os.Getenv("BITRISE_DEPLOY_DIR"), "emulator_log.txt")
+	logFile, err := os.Create(logFilePath)
+	if err != nil {
+		failf("Failed to create log file, error: %s", err)
+	}
+	defer func() { _ = logFile.Close() }()
+
 	for _, phase := range []phase{
 		{"Update emulator",
 			command.New(sdkManagerPath, "--verbose", "--channel="+cfg.EmulatorChannel, "emulator").
@@ -161,7 +168,7 @@ func main() {
 				"-netdelay", "none",
 				"-no-snapshot",
 				"-wipe-data",
-				"-gpu", "swiftshader_indirect"}, startCustomFlags...)...),
+				"-gpu", "swiftshader_indirect"}, startCustomFlags...)...).SetStdout(logFile).SetStderr(logFile),
 			func(cmd *command.Model) func() (string, error) { // need to start the emlator as a detached process
 				return func() (string, error) {
 					return "", cmd.GetCmd().Start()
