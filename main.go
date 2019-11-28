@@ -131,7 +131,11 @@ func main() {
 	if err != nil {
 		failf("Failed to create log file, error: %s", err)
 	}
-	defer func() { _ = logFile.Close() }()
+	defer func() {
+		if err := logFile.Close(); err != nil {
+			fmt.Println("Failed to close file:", logFilePath, "error:", err)
+		}
+	}()
 
 	for _, phase := range []phase{
 		{"Update emulator",
