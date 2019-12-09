@@ -110,7 +110,7 @@ func main() {
 	var (
 		sdkManagerPath = filepath.Join(cfg.AndroidHome, "tools/bin/sdkmanager")
 		avdManagerPath = filepath.Join(cfg.AndroidHome, "tools/bin/avdmanager")
-		emulatorPath   = filepath.Join(cfg.AndroidHome, "emulator/emulator-headless")
+		emulatorPath   = filepath.Join(cfg.AndroidHome, "emulator/emulator")
 
 		pkg     = fmt.Sprintf("system-images;android-%d;%s;%s", cfg.APILevel, cfg.Tag, cfg.Abi)
 		yes, no = strings.Repeat("yes\n", 20), strings.Repeat("no\n", 20)
@@ -157,6 +157,7 @@ func main() {
 				"-verbose",
 				"-show-kernel",
 				"-no-audio",
+				"-no-window",
 				"-no-boot-anim",
 				"-netdelay", "none",
 				"-no-snapshot",
