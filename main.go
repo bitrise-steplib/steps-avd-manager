@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -30,7 +31,14 @@ type config struct {
 }
 
 func runningDeviceInfos(androidHome string) (map[string]string, error) {
-	cmd := command.New(filepath.Join(androidHome, "platform-tools/adb"), "devices")
+	adbPath, err := exec.LookPath("adb")
+	if err != nil {
+		return map[string]string{}, fmt.Errorf("adb executable not found on path: %s", err)
+	}
+
+	cmd := command.New(adbPath, "devices")
+	log.Donef("$ %s", cmd.PrintableCommandArgs())
+
 	out, err := cmd.RunAndReturnTrimmedCombinedOutput()
 	if err != nil {
 		return map[string]string{}, fmt.Errorf("command failed, error: %s", err)
