@@ -79,6 +79,7 @@ workflows:
         title: Step Test
         inputs:
         - api_level: $EMU_VER
+        - tag: "default"
     - script:
         inputs:
         - content: |
