@@ -1,6 +1,27 @@
 title: "AVD Manager"
-summary: Create and run Android Virtual Device
-description: Create and run Android Virtual Device
+summary: |-
+Create an Android emulator with the AVD Manager Step.
+description: |-
+  Test your project in an Android emulator with the AVD Manager. Once some basic inputs are set, the Step checks the requirements, downloads and installs the packages before creating and starting the emulator.
+
+  ### Configuring the Step
+  1. Add the **AVD Manager** Step to your Workflow as one of the first Steps in your Workflow.
+  2. Set the **Device Profile** to create a new Android virtual device. To see the complete list of available profiles, use the `avdmanager list device` command.
+  3. Set the **Android API Level**. The new virtual device will run with the specified Android version.
+  4. Select an **OS Tag** to have the required toolset on the new virtual device.
+
+  ### Troubleshooting
+  The emulator needs some time to boot up. The earlier you place the Step in your Workflow, the more tasks, such as cloning or caching, you can complete in your Workflow before the emulator starts working.
+  We recommend that you also add **Wait for Android emulator** Step to your Workflow as it acts as a shield preventing the AVD Manager to kick in too early. Make sure you add the **Wait for Android emulator** Step BEFORE the Step with which you want to use the **AVD Manager**.
+
+  ### Useful links
+  - [Getting started with Android apps](https://devcenter.bitrise.io/getting-started/getting-started-with-android-apps/)
+  - [Device testing for Android](https://devcenter.bitrise.io/testing/device-testing-for-android/)
+  - [About Test Reports](https://devcenter.bitrise.io/testing/test-reports/)
+
+  ### Related Steps
+  - [Wait for Android emulator](https://www.bitrise.io/integrations/steps/wait-for-android-emulator)
+  - [Android Build for UI testing](https://www.bitrise.io/integrations/steps/android-build-for-ui-testing)
 website: https://github.com/bitrise-steplib/steps-avd-manager
 source_code_url: https://github.com/bitrise-steplib/steps-avd-manager
 support_url: https://github.com/bitrise-steplib/steps-avd-manager/issues
