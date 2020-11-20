@@ -1,6 +1,6 @@
-title: "AVD Manager"
+title: AVD Manager
 summary: |-
-Create an Android emulator with the AVD Manager Step.
+  Create an Android emulator with the AVD Manager Step.
 description: |-
   Test your project in an Android emulator with the AVD Manager. Once some basic inputs are set, the Step checks the requirements, downloads and installs the packages before creating and starting the emulator.
 
