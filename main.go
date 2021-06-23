@@ -27,6 +27,7 @@ type config struct {
 	ID                string `env:"emulator_id,required"`
 	Abi               string `env:"abi,opt[x86,armeabi-v7a,arm64-v8a,x86_64]"`
 	EmulatorChannel   string `env:"emulator_channel,opt[0,1,2,3]"`
+	StartTimeout      int    `env:"start_timeout,required"`
 }
 
 func runningDeviceInfos(androidHome string) (map[string]string, error) {
@@ -186,7 +187,9 @@ func main() {
 	}
 
 	deviceDetectionStarted := time.Now()
-	for true {
+	bootWaitTime := time.Duration(cfg.StartTimeout)
+
+	for {
 		currentRunningDevices, err := runningDeviceInfos(cfg.AndroidHome)
 		if err != nil {
 			failf("Failed to check running devices, error: %s", err)
@@ -201,8 +204,6 @@ func main() {
 			log.Printf("- Device with serial: %s started", serial)
 			break
 		}
-
-		bootWaitTime := time.Duration(300)
 
 		if time.Now().After(deviceDetectionStarted.Add(bootWaitTime * time.Second)) {
 			failf("Failed to boot emulator device within %d seconds.", bootWaitTime)

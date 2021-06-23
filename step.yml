@@ -66,14 +66,14 @@ inputs:
       - "android-tv"
       - "default"
   - abi: "x86"
-    opts:	
-      category: Debug	
-      title: "ABI"	
-      summary: Select which ABI to use running the emulator. Availability depends on API level. Please use `sdkmanager --list` command to see the available ABIs.	
-      description: Select which ABI to use running the emulator. Availability depends on API level. Please use `sdkmanager --list` command to see the available ABIs.	
-      is_expand: true	
-      is_required: true	
-      value_options:	
+    opts:
+      category: Debug
+      title: "ABI"
+      summary: Select which ABI to use running the emulator. Availability depends on API level. Please use `sdkmanager --list` command to see the available ABIs.
+      description: Select which ABI to use running the emulator. Availability depends on API level. Please use `sdkmanager --list` command to see the available ABIs.
+      is_expand: true
+      is_required: true
+      value_options:
       - "x86"	
       - "x86_64"	
       - "armeabi-v7a"	
@@ -113,6 +113,13 @@ inputs:
         - "1"
         - "2"
         - "3"
+  - start_timeout: "300"
+    opts:
+      title: "Waiting timeout (sec)"
+      summary: Maximum time to wait for emulator to start
+      description: |
+        Maximum time to wait for emulator to start.
+      is_required: true
 
 outputs:
   - BITRISE_EMULATOR_SERIAL:
