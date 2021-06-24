@@ -28,6 +28,7 @@ const rangeMaximumGroupName = "max"
 const rangeMinBracketGroupName = "minbr"
 const rangeMaxBracketGroupName = "maxbr"
 const rangeRegex = `range(?P<` + rangeMinBracketGroupName + `>\[|\])(?P<` + rangeMinimumGroupName + `>.*?)\.\.(?P<` + rangeMaximumGroupName + `>.*?)(?P<` + rangeMaxBracketGroupName + `>\[|\])`
+const multilineConstraintName = "multiline"
 
 // Error implements builtin errors.Error.
 func (e *ParseError) Error() string {
@@ -56,7 +57,19 @@ func (s Secret) String() string {
 // Print the name of the struct with Title case in blue color with followed by a newline,
 // then print all fields formatted as '- field name: field value` separated by newline.
 func Print(config interface{}) {
-	fmt.Printf(toString(config))
+	fmt.Print(toString(config))
+}
+
+func valueString(v reflect.Value) string {
+	if v.Kind() != reflect.Ptr {
+		return fmt.Sprintf("%v", v.Interface())
+	}
+
+	if !v.IsNil() {
+		return fmt.Sprintf("%v", v.Elem().Interface())
+	}
+
+	return ""
 }
 
 // returns the name of the struct with Title case in blue color followed by a newline,
@@ -73,9 +86,9 @@ func toString(config interface{}) string {
 		t = t.Elem()
 	}
 
-	str := fmt.Sprintf(colorstring.Bluef("%s:\n", strings.Title(t.Name())))
+	str := fmt.Sprint(colorstring.Bluef("%s:\n", strings.Title(t.Name())))
 	for i := 0; i < t.NumField(); i++ {
-		str += fmt.Sprintf("- %s: %v\n", t.Field(i).Name, v.Field(i).Interface())
+		str += fmt.Sprintf("- %s: %s\n", t.Field(i).Name, valueString(v.Field(i)))
 	}
 
 	return str
@@ -137,6 +150,14 @@ func setField(field reflect.Value, value, constraint string) error {
 		return nil
 	}
 
+	if field.Kind() == reflect.Ptr {
+		// If field is a pointer type, then set its value to be a pointer to a new zero value, matching field underlying type.
+		var dePtrdType = field.Type().Elem()     // get the type field can point to
+		var newPtrType = reflect.New(dePtrdType) // create new ptr address for type with non-nil zero value
+		field.Set(newPtrType)                    // assign value to pointer
+		field = field.Elem()
+	}
+
 	switch field.Kind() {
 	case reflect.String:
 		field.SetString(value)
@@ -153,13 +174,18 @@ func setField(field reflect.Value, value, constraint string) error {
 		}
 		field.SetInt(n)
 	case reflect.Float64:
+		value = strings.TrimSpace(value)
 		f, err := strconv.ParseFloat(value, 64)
 		if err != nil {
 			return errors.New("can't convert to float")
 		}
 		field.SetFloat(f)
 	case reflect.Slice:
-		field.Set(reflect.ValueOf(strings.Split(value, "|")))
+		if constraint == multilineConstraintName {
+			field.Set(reflect.ValueOf(strings.Split(value, "\n")))
+		} else {
+			field.Set(reflect.ValueOf(strings.Split(value, "|")))
+		}
 	default:
 		return fmt.Errorf("type is not supported (%s)", field.Kind())
 	}
@@ -188,6 +214,8 @@ func validateConstraint(value, constraint string) error {
 		if err := ValidateRangeFields(value, constraint); err != nil {
 			return err
 		}
+	case multilineConstraintName:
+		break
 	default:
 		return fmt.Errorf("invalid constraint (%s)", constraint)
 	}
