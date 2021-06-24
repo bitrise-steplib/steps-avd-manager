@@ -204,7 +204,7 @@ func main() {
 	}
 
 	deviceDetectionStarted := time.Now()
-	for true {
+	for {
 		currentRunningDevices, err := runningDeviceInfos(cfg.AndroidHome)
 		if err != nil {
 			failf("Failed to check running devices, error: %s", err)
