@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/bitrise-io/go-android/sdk"
 	"github.com/bitrise-io/go-steputils/stepconf"
 	"github.com/bitrise-io/go-steputils/tools"
 	"github.com/bitrise-io/go-utils/command"
@@ -18,7 +19,8 @@ import (
 
 // config ...
 type config struct {
-	AndroidHome       string `env:"ANDROID_HOME,required"`
+	AndroidHome       string `env:"ANDROID_HOME"`
+	AndroidSDKRoot    string `env:"ANDROID_SDK_ROOT"`
 	APILevel          int    `env:"api_level,required"`
 	Tag               string `env:"tag,opt[google_apis,google_apis_playstore,android-wear,android-tv,default]"`
 	DeviceProfile     string `env:"profile,required"`
@@ -102,15 +104,31 @@ func main() {
 	stepconf.Print(cfg)
 	fmt.Println()
 
-	runningDevices, err := runningDeviceInfos(cfg.AndroidHome)
+	// Initialize Android SDK
+	log.Printf("Initialize Android SDK")
+	androidSdk, err := sdk.NewDefaultModel(sdk.Environment{
+		AndroidHome:    cfg.AndroidHome,
+		AndroidSDKRoot: cfg.AndroidSDKRoot,
+	})
+	if err != nil {
+		failf("Failed to initialize Android SDK: %s", err)
+	}
+
+	androidHome := androidSdk.GetAndroidHome()
+	runningDevices, err := runningDeviceInfos(androidHome)
 	if err != nil {
 		failf("Failed to check running devices, error: %s", err)
 	}
 
+	cmdlineToolsPath, err := androidSdk.CmdlineToolsPath()
+	if err != nil {
+		failf("Could not locate Android command-line tools: %v", err)
+	}
+
 	var (
-		sdkManagerPath = filepath.Join(cfg.AndroidHome, "tools/bin/sdkmanager")
-		avdManagerPath = filepath.Join(cfg.AndroidHome, "tools/bin/avdmanager")
-		emulatorPath   = filepath.Join(cfg.AndroidHome, "emulator/emulator")
+		sdkManagerPath = filepath.Join(cmdlineToolsPath, "sdkmanager")
+		avdManagerPath = filepath.Join(cmdlineToolsPath, "avdmanager")
+		emulatorPath   = filepath.Join(androidHome, "emulator", "emulator")
 
 		pkg     = fmt.Sprintf("system-images;android-%d;%s;%s", cfg.APILevel, cfg.Tag, cfg.Abi)
 		yes, no = strings.Repeat("yes\n", 20), strings.Repeat("no\n", 20)
