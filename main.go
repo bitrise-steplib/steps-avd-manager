@@ -233,7 +233,10 @@ waitLoop:
 		select {
 		case err := <-emulatorWaitCh:
 			log.Warnf("Emulator log: %s", output)
-			failf("Emulator exited unexpectedly: %v", err)
+			if err != nil {
+				failf("Emulator exited unexpectedly: %v", err)
+			}
+			failf("Emulator exited early, without error. A possible cause can be the emulator process having received a KILL signal.")
 		case <-timeout.C:
 			log.Warnf("Emulator log: %s", output)
 			failf("Failed to boot emulator device within %d seconds.", bootWaitTime)
