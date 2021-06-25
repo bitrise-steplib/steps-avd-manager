@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -37,6 +38,9 @@ func runningDeviceInfos(androidHome string) (map[string]string, error) {
 	if err != nil {
 		return map[string]string{}, fmt.Errorf("command failed, error: %s", err)
 	}
+
+	log.Debugf("$ %s", cmd.PrintableCommandArgs())
+	log.Debugf("%s", out)
 
 	// List of devices attached
 	// emulator-5554	device
@@ -88,6 +92,17 @@ func currentlyStartedDeviceSerial(alreadyRunningDeviceInfos, currentlyRunningDev
 	}
 
 	return ""
+}
+
+func queryNewDeviceSerial(androidHome string, runningDevices map[string]string) (string, error) {
+	currentRunningDevices, err := runningDeviceInfos(androidHome)
+	if err != nil {
+		return "", fmt.Errorf("failed to check running devices: %s", err)
+	}
+
+	serial := currentlyStartedDeviceSerial(runningDevices, currentRunningDevices)
+
+	return serial, nil
 }
 
 type phase struct {
@@ -145,19 +160,19 @@ func main() {
 	}
 
 	for _, phase := range []phase{
-		{"Update emulator",
+		{"Updating emulator",
 			command.New(sdkManagerPath, "--verbose", "--channel="+cfg.EmulatorChannel, "emulator").
 				SetStdin(strings.NewReader(yes)), // hitting yes in case it waits for accepting license
 			nil,
 		},
 
-		{"Update system-image packages",
+		{"Updating system-image packages",
 			command.New(sdkManagerPath, "--verbose", pkg).
 				SetStdin(strings.NewReader(yes)), // hitting yes in case it waits for accepting license
 			nil,
 		},
 
-		{"Create device",
+		{"Creating device",
 			command.New(avdManagerPath, append([]string{
 				"--verbose", "create", "avd", "--force",
 				"--name", cfg.ID,
@@ -167,25 +182,6 @@ func main() {
 				"--abi", cfg.Abi}, createCustomFlags...)...).
 				SetStdin(strings.NewReader(no)), // hitting no in case it asks for creating hw profile
 			nil,
-		},
-
-		{"Start device",
-			command.New(emulatorPath, append([]string{
-				"@" + cfg.ID,
-				"-verbose",
-				"-show-kernel",
-				"-no-audio",
-				"-no-window",
-				"-no-boot-anim",
-				"-netdelay", "none",
-				"-no-snapshot",
-				"-wipe-data",
-				"-gpu", "swiftshader_indirect"}, startCustomFlags...)...),
-			func(cmd *command.Model) func() (string, error) { // need to start the emlator as a detached process
-				return func() (string, error) {
-					return "", cmd.GetCmd().Start()
-				}
-			},
 		},
 	} {
 		log.Infof(phase.name)
@@ -197,37 +193,66 @@ func main() {
 		}
 
 		if out, err := exec(); err != nil {
-			failf("Failed to run phase, error: %s, output: %s", err, out)
+			failf("Failed to run phase: %s, output: %s", err, out)
 		}
 
 		fmt.Println()
 	}
 
-	deviceDetectionStarted := time.Now()
-	for {
-		currentRunningDevices, err := runningDeviceInfos(cfg.AndroidHome)
-		if err != nil {
-			failf("Failed to check running devices, error: %s", err)
-		}
+	var output bytes.Buffer
+	deviceStartCmd := command.New(emulatorPath, append([]string{
+		"@" + cfg.ID,
+		"-verbose",
+		"-show-kernel",
+		"-no-audio",
+		"-no-window",
+		"-no-boot-anim",
+		"-netdelay", "none",
+		"-no-snapshot",
+		"-wipe-data",
+		"-gpu", "swiftshader_indirect"}, startCustomFlags...)...,
+	).SetStdout(&output).SetStderr(&output)
 
-		serial := currentlyStartedDeviceSerial(runningDevices, currentRunningDevices)
-
-		if serial != "" {
-			if err := tools.ExportEnvironmentWithEnvman("BITRISE_EMULATOR_SERIAL", serial); err != nil {
-				log.Warnf("Failed to export environment (BITRISE_EMULATOR_SERIAL), error: %s", err)
-			}
-			log.Printf("- Device with serial: %s started", serial)
-			break
-		}
-
-		bootWaitTime := time.Duration(300)
-
-		if time.Now().After(deviceDetectionStarted.Add(bootWaitTime * time.Second)) {
-			failf("Failed to boot emulator device within %d seconds.", bootWaitTime)
-		}
-
-		time.Sleep(5 * time.Second)
+	log.Infof("Starting device")
+	log.Donef("$ %s", deviceStartCmd.PrintableCommandArgs())
+	// start the emlator as a detached process
+	emulatorWaitCh := make(chan error, 1)
+	if err := deviceStartCmd.GetCmd().Start(); err != nil {
+		failf("Failed to run device start command: %v", err)
 	}
+	go func() {
+		emulatorWaitCh <- deviceStartCmd.GetCmd().Wait()
+	}()
+
+	var serial string
+	const bootWaitTime = time.Duration(60)
+	timeout := time.NewTimer(bootWaitTime * time.Second)
+
+waitLoop:
+	for {
+		select {
+		case err := <-emulatorWaitCh:
+			log.Warnf("Emulator log: %s", output)
+			failf("Emulator exited unexpectedly: %v", err)
+		case <-timeout.C:
+			log.Warnf("Emulator log: %s", output)
+			failf("Failed to boot emulator device within %d seconds.", bootWaitTime)
+		default:
+			serial, err = queryNewDeviceSerial(androidHome, runningDevices)
+			if err != nil {
+				failf("Error: %s", err)
+			} else if serial != "" {
+				break waitLoop
+			}
+
+			time.Sleep(5 * time.Second)
+		}
+	}
+
+	if err := tools.ExportEnvironmentWithEnvman("BITRISE_EMULATOR_SERIAL", serial); err != nil {
+		log.Warnf("Failed to export environment (BITRISE_EMULATOR_SERIAL), error: %s", err)
+	}
+	log.Printf("- Device with serial: %s started", serial)
 
 	log.Donef("- Done")
 }
