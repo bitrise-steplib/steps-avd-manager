@@ -33,7 +33,7 @@ type config struct {
 }
 
 func runningDeviceInfos(androidHome string) (map[string]string, error) {
-	cmd := command.New(filepath.Join(androidHome, "platform-tools/adb"), "devices")
+	cmd := command.New(filepath.Join(androidHome, "platform-tools", "adb"), "devices")
 	out, err := cmd.RunAndReturnTrimmedCombinedOutput()
 	if err != nil {
 		return map[string]string{}, fmt.Errorf("command failed, error: %s", err)
@@ -225,7 +225,7 @@ func main() {
 	}()
 
 	var serial string
-	const bootWaitTime = time.Duration(60)
+	const bootWaitTime = time.Duration(300)
 	timeout := time.NewTimer(bootWaitTime * time.Second)
 
 waitLoop:
