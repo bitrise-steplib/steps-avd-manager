@@ -116,6 +116,10 @@ workflows:
               #!/bin/bash
               set -x
               adb -s $BITRISE_EMULATOR_SERIAL emu kill
+              adb devices
+              # It takes a bit of time for the simulator to exit
+              sleep 5
+              adb devices
 
   # ----------------------------------------------------------------
   # --- workflows to Share this step into a Step Library
