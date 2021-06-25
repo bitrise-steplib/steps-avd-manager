@@ -227,6 +227,7 @@ func main() {
 	var serial string
 	const bootWaitTime = time.Duration(300)
 	timeout := time.NewTimer(bootWaitTime * time.Second)
+	deviceCheckTicker := time.NewTicker(5 * time.Second)
 
 waitLoop:
 	for {
@@ -240,17 +241,17 @@ waitLoop:
 		case <-timeout.C:
 			log.Warnf("Emulator log: %s", output)
 			failf("Failed to boot emulator device within %d seconds.", bootWaitTime)
-		default:
+		case <-deviceCheckTicker.C:
 			serial, err = queryNewDeviceSerial(androidHome, runningDevices)
 			if err != nil {
 				failf("Error: %s", err)
 			} else if serial != "" {
 				break waitLoop
 			}
-
-			time.Sleep(5 * time.Second)
 		}
 	}
+	timeout.Stop()
+	deviceCheckTicker.Stop()
 
 	if err := tools.ExportEnvironmentWithEnvman("BITRISE_EMULATOR_SERIAL", serial); err != nil {
 		log.Warnf("Failed to export environment (BITRISE_EMULATOR_SERIAL), error: %s", err)
