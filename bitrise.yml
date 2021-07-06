@@ -1,133 +1,27 @@
-format_version: 9
+format_version: "11"
 default_step_lib_source: https://github.com/bitrise-io/bitrise-steplib.git
 
 workflows:
+  check:
+    steps:
+    - git::https://github.com/bitrise-steplib/steps-check.git: {}
+
+  e2e:
+    steps:
+      - git::https://github.com/bitrise-steplib/steps-check.git:
+          inputs:
+            - workflow: e2e
+
+  sample:
+    steps:
+      - path::./:
+          title: Current Step
+          inputs:
+          - profile: pixel_2
+          - api_level: "30"
+      - wait-for-android-emulator: {}
+
   test:
-    before_run:
-    - audit-this-step
     after_run:
-    - screenshots
-    steps:
-    - go-list:
-    - golint:
-    - errcheck:
-    - go-test:
-
-  screenshots:
-    before_run:
-    - _in-deploy-dir
-    after_run:
-    - _avd-29-scr
-    - _avd-28-scr
-    - _avd-27-scr
-    - _avd-26-scr
-    - _avd-25-scr
-    - _avd-24-scr
-    - _avd-23-scr
-
-  _avd-23-scr:
-    envs:
-    - EMU_VER: 23
-    after_run:
-    - _take_screenshot
-
-  _avd-24-scr:
-    envs:
-    - EMU_VER: 24
-    after_run:
-    - _take_screenshot
-
-  _avd-25-scr:
-    envs:
-    - EMU_VER: 25
-    after_run:
-    - _take_screenshot
-
-  _avd-26-scr:
-    envs:
-    - EMU_VER: 26
-    after_run:
-    - _take_screenshot
-
-  _avd-27-scr:
-    envs:
-    - EMU_VER: 27
-    after_run:
-    - _take_screenshot
-
-  _avd-28-scr:
-    envs:
-    - EMU_VER: 28
-    after_run:
-    - _take_screenshot
-
-  _avd-29-scr:
-    envs:
-    - EMU_VER: 29
-    after_run:
-    - _take_screenshot
-
-  _in-deploy-dir:
-    steps:
-    - change-workdir:
-        inputs:
-        - path: $BITRISE_DEPLOY_DIR
-
-  _start-emulator:
-    steps:
-    - path::./:
-        title: Step Test
-        inputs:
-        - api_level: $EMU_VER
-        - tag: "default"
-    - script:
-        inputs:
-        - content: |
-              #!/bin/bash
-              set -ex
-              if [ "$BITRISE_EMULATOR_SERIAL" = "emulator-5554" ]
-              then
-                exit 0
-              else
-                exit 1
-              fi
-    - wait-for-android-emulator: {}
-
-  _take_screenshot:
-    before_run:
-    - _start-emulator
-    after_run:
-    - _kill-emulator
-    steps:
-    - script:
-        inputs:
-        - content: |
-              #!/bin/bash
-              sleep 15
-              $ANDROID_HOME/platform-tools/adb shell "screencap -p /sdcard/screen.png"
-              $ANDROID_HOME/platform-tools/adb pull "/sdcard/screen.png" "./screen_$EMU_VER.png"
-
-  _kill-emulator:
-    steps:
-    - script:
-        is_always_run: true
-        inputs:
-        - content: |
-              #!/bin/bash
-              set -x
-              adb -s $BITRISE_EMULATOR_SERIAL emu kill
-              adb devices
-              # It takes a bit of time for the simulator to exit
-              sleep 5
-              adb devices
-
-  # ----------------------------------------------------------------
-  # --- workflows to Share this step into a Step Library
-  audit-this-step:
-    steps:
-    - script:
-        inputs:
-        - content: |-
-            #!/bin/bash
-            set -ex
-            stepman audit --step-yml ./step.yml
+    - check
+    - e2e
