@@ -106,9 +106,8 @@ func queryNewDeviceSerial(androidHome string, runningDevices map[string]string) 
 }
 
 type phase struct {
-	name           string
-	command        *command.Model
-	customExecutor func(cmd *command.Model) func() (string, error)
+	name    string
+	command *command.Model
 }
 
 func main() {
@@ -160,19 +159,20 @@ func main() {
 	}
 
 	for _, phase := range []phase{
-		{"Updating emulator",
+		{
+			"Updating emulator",
 			command.New(sdkManagerPath, "--verbose", "--channel="+cfg.EmulatorChannel, "emulator").
 				SetStdin(strings.NewReader(yes)), // hitting yes in case it waits for accepting license
-			nil,
 		},
 
-		{"Updating system-image packages",
+		{
+			"Updating system-image packages",
 			command.New(sdkManagerPath, "--verbose", pkg).
 				SetStdin(strings.NewReader(yes)), // hitting yes in case it waits for accepting license
-			nil,
 		},
 
-		{"Creating device",
+		{
+			"Creating device",
 			command.New(avdManagerPath, append([]string{
 				"--verbose", "create", "avd", "--force",
 				"--name", cfg.ID,
@@ -181,18 +181,12 @@ func main() {
 				"--tag", cfg.Tag,
 				"--abi", cfg.Abi}, createCustomFlags...)...).
 				SetStdin(strings.NewReader(no)), // hitting no in case it asks for creating hw profile
-			nil,
 		},
 	} {
 		log.Infof(phase.name)
 		log.Donef("$ %s", phase.command.PrintableCommandArgs())
 
-		var exec = phase.command.RunAndReturnTrimmedCombinedOutput
-		if e := phase.customExecutor; e != nil {
-			exec = e(phase.command)
-		}
-
-		if out, err := exec(); err != nil {
+		if out, err := phase.command.RunAndReturnTrimmedCombinedOutput(); err != nil {
 			failf("Failed to run phase: %s, output: %s", err, out)
 		}
 
