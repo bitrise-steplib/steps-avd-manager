@@ -21,8 +21,3 @@ workflows:
           - profile: pixel_2
           - api_level: "30"
       - wait-for-android-emulator: {}
-
-  test:
-    after_run:
-    - check
-    - e2e
