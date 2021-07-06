@@ -8,7 +8,15 @@ workflows:
 
   e2e:
     steps:
+      - script:
+          inputs:
+            - content: |-
+                set -ex
+                if [[ "$BITRISEIO_STACK_ID" != "linux-docker-android" ]]; then
+                  envman add --key RUN_E2E --value "yes"
+                fi
       - git::https://github.com/bitrise-steplib/steps-check.git:
+          run_if: '{{enveq "RUN_E2E" "yes"}}'
           inputs:
             - workflow: e2e
 

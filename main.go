@@ -206,10 +206,6 @@ func main() {
 		"-wipe-data",
 		"-gpu", "swiftshader_indirect"}, startCustomFlags...)...,
 	).SetStdout(&output).SetStderr(&output)
-	deviceStartCmd.AppendEnvs(
-		fmt.Sprintf("ANDROID_SDK_ROOT=%s", androidHome),
-		fmt.Sprintf("ANDROID_HOME=%s", androidHome),
-	)
 
 	log.Infof("Starting device")
 	log.Donef("$ %s", deviceStartCmd.PrintableCommandArgs())
