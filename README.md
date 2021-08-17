@@ -1,93 +1,72 @@
+# AVD Manager
 
-# AVD Manager step
+[![Step changelog](https://shields.io/github/v/release/bitrise-steplib/steps-avd-manager?include_prereleases&label=changelog&color=blueviolet)](https://github.com/bitrise-steplib/steps-avd-manager/releases)
 
-Create and run Android Virtual Devices
+Create an Android emulator with the AVD Manager Step.
 
+<details>
+<summary>Description</summary>
 
-## How to use this Step
+Test your project in an Android emulator with the AVD Manager. Once some basic inputs are set, the Step checks the requirements, downloads and installs the packages before creating and starting the emulator.
 
-Can be run directly with the [bitrise CLI](https://github.com/bitrise-io/bitrise),
-just `git clone` this repository, `cd` into it's folder in your Terminal/Command Line
-and call `bitrise run test`.
+### Configuring the Step
+1. Add the **AVD Manager** Step to your Workflow as one of the first Steps in your Workflow.
+2. Set the **Device Profile** to create a new Android virtual device. To see the complete list of available profiles, use the `avdmanager list device` command.
+3. Set the **Android API Level**. The new virtual device will run with the specified Android version.
+4. Select an **OS Tag** to have the required toolset on the new virtual device.
 
-*Check the `bitrise.yml` file for required inputs which have to be
-added to your `.bitrise.secrets.yml` file!*
+### Troubleshooting
+The emulator needs some time to boot up. The earlier you place the Step in your Workflow, the more tasks, such as cloning or caching, you can complete in your Workflow before the emulator starts working.
+We recommend that you also add **Wait for Android emulator** Step to your Workflow as it acts as a shield preventing the AVD Manager to kick in too early. Make sure you add the **Wait for Android emulator** Step BEFORE the Step with which you want to use the **AVD Manager**.
 
-Step by step:
+### Useful links
+- [Getting started with Android apps](https://devcenter.bitrise.io/getting-started/getting-started-with-android-apps/)
+- [Device testing for Android](https://devcenter.bitrise.io/testing/device-testing-for-android/)
+- [About Test Reports](https://devcenter.bitrise.io/testing/test-reports/)
 
-1. Open up your Terminal / Command Line
-2. `git clone` the repository
-3. `cd` into the directory of the step (the one you just `git clone`d)
-5. Create a `.bitrise.secrets.yml` file in the same directory of `bitrise.yml` - the `.bitrise.secrets.yml` is a git ignored file, you can store your secrets in
-6. Check the `bitrise.yml` file for any secret you should set in `.bitrise.secrets.yml`
-  * Best practice is to mark these options with something like `# define these in your .bitrise.secrets.yml`, in the `app:envs` section.
-7. Once you have all the required secret parameters in your `.bitrise.secrets.yml` you can just run this step with the [bitrise CLI](https://github.com/bitrise-io/bitrise): `bitrise run test`
+### Related Steps
+- [Wait for Android emulator](https://www.bitrise.io/integrations/steps/wait-for-android-emulator)
+- [Android Build for UI testing](https://www.bitrise.io/integrations/steps/android-build-for-ui-testing)
+</details>
 
-An example `.bitrise.secrets.yml` file:
+## 🧩 Get started
 
-```
-envs:
-- A_SECRET_PARAM_ONE: the value for secret one
-- A_SECRET_PARAM_TWO: the value for secret two
-```
+Add this step directly to your workflow in the [Bitrise Workflow Editor](https://devcenter.bitrise.io/steps-and-workflows/steps-and-workflows-index/).
 
-## How to create your own step
+You can also run this step directly with [Bitrise CLI](https://github.com/bitrise-io/bitrise).
 
-1. Create a new git repository for your step (**don't fork** the *step template*, create a *new* repository)
-2. Copy the [step template](https://github.com/bitrise-steplib/step-template) files into your repository
-3. Fill the `step.sh` with your functionality
-4. Wire out your inputs to `step.yml` (`inputs` section)
-5. Fill out the other parts of the `step.yml` too
-6. Provide test values for the inputs in the `bitrise.yml`
-7. Run your step with `bitrise run test` - if it works, you're ready
+## ⚙️ Configuration
 
-__For Step development guidelines & best practices__ check this documentation: [https://github.com/bitrise-io/bitrise/blob/master/_docs/step-development-guideline.md](https://github.com/bitrise-io/bitrise/blob/master/_docs/step-development-guideline.md).
+<details>
+<summary>Inputs</summary>
 
-**NOTE:**
+| Key | Description | Flags | Default |
+| --- | --- | --- | --- |
+| `profile` | Set the device profile to create the new AVD. This profile contains all the parameters of the devices. To see the complete list of available profiles please use the `avdmanager list device` command. | required | `pixel` |
+| `api_level` | The device will run with the specified version of android. | required | `26` |
+| `tag` | Select OS tag to have the required toolset on the device. | required | `google_apis` |
+| `abi` | Select which ABI to use running the emulator. Availability depends on API level. Please use `sdkmanager --list` command to see the available ABIs. | required | `x86` |
+| `emulator_id` | Set the device's ID. (This will be the name under $HOME/.android/avd/) | required | `emulator` |
+| `create_command_flags` | Flags used when running the command to create the emulator. |  | `--sdcard 512M` |
+| `start_command_flags` | Flags used when running the command to start the emulator. |  | `-camera-back none -camera-front none` |
+| `emulator_channel` | Select which channel to use with `sdkmanager` to fetch `emulator` package. Available channels are 0 (Stable), 1 (Beta), 2 (Dev), and 3 (Canary). | required | `0` |
+</details>
 
-If you want to use your step in your project's `bitrise.yml`:
+<details>
+<summary>Outputs</summary>
 
-1. git push the step into it's repository
-2. reference it in your `bitrise.yml` with the `git::PUBLIC-GIT-CLONE-URL@BRANCH` step reference style:
+| Environment Variable | Description |
+| --- | --- |
+| `BITRISE_EMULATOR_SERIAL` | Booted emulator serial |
+</details>
 
-```
-- git::https://github.com/user/my-step.git@branch:
-   title: My step
-   inputs:
-   - my_input_1: "my value 1"
-   - my_input_2: "my value 2"
-```
+## 🙋 Contributing
 
-You can find more examples of step reference styles
-in the [bitrise CLI repository](https://github.com/bitrise-io/bitrise/blob/master/_examples/tutorials/steps-and-workflows/bitrise.yml#L65).
+We welcome [pull requests](https://github.com/bitrise-steplib/steps-avd-manager/pulls) and [issues](https://github.com/bitrise-steplib/steps-avd-manager/issues) against this repository.
 
-## How to contribute to this Step
+For pull requests, work on your changes in a forked repository and use the Bitrise CLI to [run step tests locally](https://devcenter.bitrise.io/bitrise-cli/run-your-first-build/).
 
-1. Fork this repository
-2. `git clone` it
-3. Create a branch you'll work on
-4. To use/test the step just follow the **How to use this Step** section
-5. Do the changes you want to
-6. Run/test the step before sending your contribution
-  * You can also test the step in your `bitrise` project, either on your Mac or on [bitrise.io](https://www.bitrise.io)
-  * You just have to replace the step ID in your project's `bitrise.yml` with either a relative path, or with a git URL format
-  * (relative) path format: instead of `- original-step-id:` use `- path::./relative/path/of/script/on/your/Mac:`
-  * direct git URL format: instead of `- original-step-id:` use `- git::https://github.com/user/step.git@branch:`
-  * You can find more example of alternative step referencing at: https://github.com/bitrise-io/bitrise/blob/master/_examples/tutorials/steps-and-workflows/bitrise.yml
-7. Once you're done just commit your changes & create a Pull Request
+Learn more about developing steps:
 
-
-## Share your own Step
-
-You can share your Step or step version with the [bitrise CLI](https://github.com/bitrise-io/bitrise). If you use the `bitrise.yml` included in this repository, all you have to do is:
-
-1. In your Terminal / Command Line `cd` into this directory (where the `bitrise.yml` of the step is located)
-1. Run: `bitrise run test` to test the step
-1. Run: `bitrise run audit-this-step` to audit the `step.yml`
-1. Check the `share-this-step` workflow in the `bitrise.yml`, and fill out the
-   `envs` if you haven't done so already (don't forget to bump the version number if this is an update
-   of your step!)
-1. Then run: `bitrise run share-this-step` to share the step (version) you specified in the `envs`
-1. Send the Pull Request, as described in the logs of `bitrise run share-this-step`
-
-That's all ;)
+- [Create your own step](https://devcenter.bitrise.io/contributors/create-your-own-step/)
+- [Testing your Step](https://devcenter.bitrise.io/contributors/testing-and-versioning-your-steps/)
