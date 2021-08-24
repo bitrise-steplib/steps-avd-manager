@@ -2,22 +2,26 @@ format_version: "11"
 default_step_lib_source: https://github.com/bitrise-io/bitrise-steplib.git
 
 workflows:
+  generate-readme:
+    steps:
+    - git::https://github.com/bitrise-steplib/steps-readme-generator.git@main: { }
+
   check:
     steps:
-    - git::https://github.com/bitrise-steplib/steps-check.git: {}
+    - git::https://github.com/bitrise-steplib/steps-check.git: { }
 
   e2e:
     steps:
-      - git::https://github.com/bitrise-steplib/steps-check.git:
-          run_if: '{{not (enveq "BITRISEIO_STACK_ID" "linux-docker-android")}}'
-          inputs:
-            - workflow: e2e
+    - git::https://github.com/bitrise-steplib/steps-check.git:
+        run_if: '{{not (enveq "BITRISEIO_STACK_ID" "linux-docker-android")}}'
+        inputs:
+        - workflow: e2e
 
   sample:
     steps:
-      - path::./:
-          title: Current Step
-          inputs:
-          - profile: pixel_2
-          - api_level: "30"
-      - wait-for-android-emulator: {}
+    - path::./:
+        title: Current Step
+        inputs:
+        - profile: pixel_2
+        - api_level: "30"
+    - wait-for-android-emulator: { }

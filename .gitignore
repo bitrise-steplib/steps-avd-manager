@@ -1,3 +1,4 @@
 steps-avd-manager
 .bitrise*
 _tmp
+.idea/
