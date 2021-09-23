@@ -76,8 +76,10 @@ workflows:
         inputs:
         - content: |
               #!/bin/bash
+              set -ex
               sleep 15
               $ANDROID_HOME/platform-tools/adb shell "screencap -p /sdcard/screen.png"
+              sleep 15
               $ANDROID_HOME/platform-tools/adb pull "/sdcard/screen.png" "./screen_$EMU_VER.png"
 
   _kill-emulator:
@@ -87,7 +89,7 @@ workflows:
         inputs:
         - content: |
               #!/bin/bash
-              set -x
+              set -ex
               adb -s $BITRISE_EMULATOR_SERIAL emu kill
               adb devices
               # It takes a bit of time for the simulator to exit
