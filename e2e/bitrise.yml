@@ -78,8 +78,7 @@ workflows:
               #!/bin/bash
               set -ex
               sleep 15
-              $ANDROID_HOME/platform-tools/adb shell "screencap -p /sdcard/screen.png"
-              sleep 15
+              for i in $(seq 1 5); do [ $i -gt 1 ] && sleep 15; $ANDROID_HOME/platform-tools/adb shell "screencap -p /sdcard/screen.png" && s=0 && break || s=$?; done; (exit $s)
               $ANDROID_HOME/platform-tools/adb pull "/sdcard/screen.png" "./screen_$EMU_VER.png"
 
   _kill-emulator:
