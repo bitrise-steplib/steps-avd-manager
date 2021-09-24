@@ -65,9 +65,7 @@ workflows:
             else
               exit 1
             fi
-    - wait-for-android-emulator:
-        inputs:
-        - boot_timeout: 600
+    - wait-for-android-emulator: { }
 
   _take_screenshot:
     steps:
@@ -94,5 +92,6 @@ workflows:
             adb -s $BITRISE_EMULATOR_SERIAL emu kill
             adb devices
             # It takes a bit of time for the simulator to exit
-            sleep 5
+            sleep 15
             adb devices
+            rm -rf ~/.android/avd
