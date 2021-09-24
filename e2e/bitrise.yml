@@ -57,15 +57,17 @@ workflows:
     - script:
         inputs:
         - content: |
-              #!/bin/bash
-              set -ex
-              if [ "$BITRISE_EMULATOR_SERIAL" = "emulator-5554" ]
-              then
-                exit 0
-              else
-                exit 1
-              fi
-    - wait-for-android-emulator: {}
+            #!/bin/bash
+            set -ex
+            if [ "$BITRISE_EMULATOR_SERIAL" = "emulator-5554" ]
+            then
+              exit 0
+            else
+              exit 1
+            fi
+    - wait-for-android-emulator:
+        inputs:
+        - boot_timeout: 600
 
   _take_screenshot:
     steps:
@@ -75,11 +77,11 @@ workflows:
     - script:
         inputs:
         - content: |
-              #!/bin/bash
-              set -ex
-              sleep 15
-              for i in $(seq 1 15); do [ $i -gt 1 ] && sleep 15; $ANDROID_HOME/platform-tools/adb shell "screencap -p /storage/emulated/0/screen.png" && s=0 && break || s=$?; done; (exit $s)
-              $ANDROID_HOME/platform-tools/adb pull "/storage/emulated/0/screen.png" "./screen_$EMU_VER.png"
+            #!/bin/bash
+            set -ex
+            sleep 15
+            for i in $(seq 1 15); do [ $i -gt 1 ] && sleep 15; $ANDROID_HOME/platform-tools/adb shell "screencap -p /storage/emulated/0/screen.png" && s=0 && break || s=$?; done; (exit $s)
+            $ANDROID_HOME/platform-tools/adb pull "/storage/emulated/0/screen.png" "./screen_$EMU_VER.png"
 
   _kill-emulator:
     steps:
@@ -87,10 +89,10 @@ workflows:
         is_always_run: true
         inputs:
         - content: |
-              #!/bin/bash
-              set -ex
-              adb -s $BITRISE_EMULATOR_SERIAL emu kill
-              adb devices
-              # It takes a bit of time for the simulator to exit
-              sleep 5
-              adb devices
+            #!/bin/bash
+            set -ex
+            adb -s $BITRISE_EMULATOR_SERIAL emu kill
+            adb devices
+            # It takes a bit of time for the simulator to exit
+            sleep 5
+            adb devices
