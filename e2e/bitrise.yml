@@ -3,6 +3,41 @@ default_step_lib_source: https://github.com/bitrise-io/bitrise-steplib.git
 
 workflows:
   test_emulator_start_23:
+    steps:
+    - script:
+        inputs:
+        - content: |
+            for i in $(seq 1 3); do [ $i -gt 1 ] && sleep 15; bitrise run -c ./e2e/bitrise.yml utility_emulator_start_23 && s=0 && break || s=$?; done; (exit $s)
+
+  test_emulator_start_26:
+    steps:
+    - script:
+        inputs:
+        - content: |
+            for i in $(seq 1 3); do [ $i -gt 1 ] && sleep 15; bitrise run -c ./e2e/bitrise.yml utility_emulator_start_26 && s=0 && break || s=$?; done; (exit $s)
+
+  test_emulator_start_28:
+    steps:
+    - script:
+        inputs:
+        - content: |
+            for i in $(seq 1 3); do [ $i -gt 1 ] && sleep 15; bitrise run -c ./e2e/bitrise.yml utility_emulator_start_28 && s=0 && break || s=$?; done; (exit $s)
+
+  test_emulator_start_29:
+    steps:
+    - script:
+        inputs:
+        - content: |
+            for i in $(seq 1 3); do [ $i -gt 1 ] && sleep 15; bitrise run -c ./e2e/bitrise.yml utility_emulator_start_29 && s=0 && break || s=$?; done; (exit $s)
+
+  test_emulator_start_30:
+    steps:
+    - script:
+        inputs:
+        - content: |
+            for i in $(seq 1 3); do [ $i -gt 1 ] && sleep 15; bitrise run -c ./e2e/bitrise.yml utility_emulator_start_30 && s=0 && break || s=$?; done; (exit $s)
+
+  utility_emulator_start_23:
     envs:
     - EMU_VER: 23
     - PROFILE: pixel
@@ -11,7 +46,7 @@ workflows:
     - _take_screenshot
     - _kill-emulator
 
-  test_emulator_start_26:
+  utility_emulator_start_26:
     envs:
     - EMU_VER: 26
     - PROFILE: pixel
@@ -20,7 +55,7 @@ workflows:
     - _take_screenshot
     - _kill-emulator
 
-  test_emulator_start_28:
+  utility_emulator_start_28:
     envs:
     - EMU_VER: 28
     - PROFILE: pixel
@@ -29,7 +64,7 @@ workflows:
     - _take_screenshot
     - _kill-emulator
 
-  test_emulator_start_29:
+  utility_emulator_start_29:
     envs:
     - EMU_VER: 29
     - PROFILE: pixel
@@ -38,7 +73,7 @@ workflows:
     - _take_screenshot
     - _kill-emulator
 
-  test_emulator_start_30:
+  utility_emulator_start_30:
     envs:
     - EMU_VER: 30
     - PROFILE: pixel_2
@@ -65,7 +100,9 @@ workflows:
             else
               exit 1
             fi
-    - wait-for-android-emulator: { }
+    - wait-for-android-emulator:
+        inputs:
+        - boot_timeout: 180
 
   _take_screenshot:
     steps:
@@ -78,7 +115,7 @@ workflows:
             #!/bin/bash
             set -ex
             sleep 15
-            for i in $(seq 1 15); do [ $i -gt 1 ] && sleep 15; $ANDROID_HOME/platform-tools/adb shell "screencap -p /storage/emulated/0/screen.png" && s=0 && break || s=$?; done; (exit $s)
+            for i in $(seq 1 5); do [ $i -gt 1 ] && sleep 15; $ANDROID_HOME/platform-tools/adb shell "screencap -p /storage/emulated/0/screen.png" && s=0 && break || s=$?; done; (exit $s)
             $ANDROID_HOME/platform-tools/adb pull "/storage/emulated/0/screen.png" "./screen_$EMU_VER.png"
 
   _kill-emulator:
