@@ -32,9 +32,12 @@ type config struct {
 	EmulatorChannel   string `env:"emulator_channel,opt[0,1,2,3]"`
 }
 
+var (
+	faultIndicators = []string{" BUG: ", "Kernel panic"}
+)
+
 const (
-	faultIndicator = " BUG: "
-	maxAttempts    = 3
+	maxAttempts = 3
 )
 
 func runningDeviceInfos(androidHome string) (map[string]string, error) {
@@ -260,7 +263,7 @@ waitLoop:
 			} else if serial != "" {
 				break waitLoop
 			}
-			if strings.Contains(output.String(), faultIndicator) {
+			if containsAny(output.String(), faultIndicators) {
 				log.Warnf("Emulator log contains fault")
 				log.Warnf("Emulator log: %s", output)
 				if err := deviceStartCmd.GetCmd().Process.Kill(); err != nil {
@@ -282,4 +285,14 @@ waitLoop:
 		return startEmulator(emulatorPath, args, androidHome, runningDevices, attempt+1)
 	}
 	return serial
+}
+
+func containsAny(output string, any []string) bool {
+	for _, fault := range any {
+		if strings.Contains(output, fault) {
+			return true
+		}
+	}
+
+	return false
 }
