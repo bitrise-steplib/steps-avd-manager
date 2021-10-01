@@ -253,7 +253,8 @@ waitLoop:
 			log.Warnf("Emulator log: %s", output)
 			failf("Failed to boot emulator device within %d seconds.", bootWaitTime)
 		case <-deviceCheckTicker.C:
-			serial, err := queryNewDeviceSerial(androidHome, runningDevices)
+			var err error
+			serial, err = queryNewDeviceSerial(androidHome, runningDevices)
 			if err != nil {
 				failf("Error: %s", err)
 			} else if serial != "" {
