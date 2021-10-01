@@ -32,6 +32,11 @@ type config struct {
 	EmulatorChannel   string `env:"emulator_channel,opt[0,1,2,3]"`
 }
 
+const (
+	faultIndicator = " BUG: "
+	maxAttempts    = 3
+)
+
 func runningDeviceInfos(androidHome string) (map[string]string, error) {
 	cmd := command.New(filepath.Join(androidHome, "platform-tools", "adb"), "devices")
 	out, err := cmd.RunAndReturnTrimmedCombinedOutput()
@@ -193,8 +198,7 @@ func main() {
 		fmt.Println()
 	}
 
-	var output bytes.Buffer
-	deviceStartCmd := command.New(emulatorPath, append([]string{
+	args := append([]string{
 		"@" + cfg.ID,
 		"-verbose",
 		"-show-kernel",
@@ -204,8 +208,21 @@ func main() {
 		"-netdelay", "none",
 		"-no-snapshot",
 		"-wipe-data",
-		"-gpu", "swiftshader_indirect"}, startCustomFlags...)...,
-	).SetStdout(&output).SetStderr(&output)
+		"-gpu", "swiftshader_indirect"}, startCustomFlags...)
+
+	serial := startEmulator(emulatorPath, args, androidHome, runningDevices, 1)
+
+	if err := tools.ExportEnvironmentWithEnvman("BITRISE_EMULATOR_SERIAL", serial); err != nil {
+		log.Warnf("Failed to export environment (BITRISE_EMULATOR_SERIAL), error: %s", err)
+	}
+	log.Printf("- Device with serial: %s started", serial)
+
+	log.Donef("- Done")
+}
+
+func startEmulator(emulatorPath string, args []string, androidHome string, runningDevices map[string]string, attempt int) string {
+	var output bytes.Buffer
+	deviceStartCmd := command.New(emulatorPath, args...).SetStdout(&output).SetStderr(&output)
 
 	log.Infof("Starting device")
 	log.Donef("$ %s", deviceStartCmd.PrintableCommandArgs())
@@ -222,7 +239,7 @@ func main() {
 	const bootWaitTime = time.Duration(300)
 	timeout := time.NewTimer(bootWaitTime * time.Second)
 	deviceCheckTicker := time.NewTicker(5 * time.Second)
-
+	retry := false
 waitLoop:
 	for {
 		select {
@@ -236,7 +253,22 @@ waitLoop:
 			log.Warnf("Emulator log: %s", output)
 			failf("Failed to boot emulator device within %d seconds.", bootWaitTime)
 		case <-deviceCheckTicker.C:
-			serial, err = queryNewDeviceSerial(androidHome, runningDevices)
+
+			if strings.Contains(output.String(), faultIndicator) {
+				log.Warnf("Emulator log contains fault")
+				log.Warnf("Emulator log: %s", output)
+				if err := deviceStartCmd.GetCmd().Process.Kill(); err != nil {
+					failf("Couldn't finish emulator process: %v", err)
+				}
+				if attempt < maxAttempts {
+					log.Warnf("Trying to start emulator process again...")
+					retry = true
+					break waitLoop
+				} else {
+					failf("Failed to boot device due to faults after %d tries", maxAttempts)
+				}
+			}
+			serial, err := queryNewDeviceSerial(androidHome, runningDevices)
 			if err != nil {
 				failf("Error: %s", err)
 			} else if serial != "" {
@@ -246,11 +278,8 @@ waitLoop:
 	}
 	timeout.Stop()
 	deviceCheckTicker.Stop()
-
-	if err := tools.ExportEnvironmentWithEnvman("BITRISE_EMULATOR_SERIAL", serial); err != nil {
-		log.Warnf("Failed to export environment (BITRISE_EMULATOR_SERIAL), error: %s", err)
+	if retry {
+		return startEmulator(emulatorPath, args, androidHome, runningDevices, attempt+1)
 	}
-	log.Printf("- Device with serial: %s started", serial)
-
-	log.Donef("- Done")
+	return serial
 }
