@@ -37,7 +37,7 @@ var (
 )
 
 const (
-	maxAttempts = 3
+	maxAttempts = 5
 )
 
 func runningDeviceInfos(androidHome string) (map[string]string, error) {
