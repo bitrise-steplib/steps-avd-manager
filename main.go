@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -27,6 +28,7 @@ type config struct {
 	DeviceProfile     string `env:"profile,required"`
 	CreateCommandArgs string `env:"create_command_flags"`
 	StartCommandArgs  string `env:"start_command_flags"`
+	ConfigScriptPath  string `env:"config_script_path"`
 	ID                string `env:"emulator_id,required"`
 	Abi               string `env:"abi,opt[x86,armeabi-v7a,arm64-v8a,x86_64]"`
 	EmulatorChannel   string `env:"emulator_channel,opt[0,1,2,3]"`
@@ -199,6 +201,13 @@ func main() {
 		}
 
 		fmt.Println()
+	}
+
+	if cfg.ConfigScriptPath != "" {
+		err := exec.Command("bash", cfg.ConfigScriptPath).Run()
+		if err != nil {
+			return
+		}
 	}
 
 	args := append([]string{

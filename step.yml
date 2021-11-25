@@ -100,6 +100,11 @@ inputs:
     summary: Flags used when running the command to start the emulator.
     description: Flags used when running the command to start the emulator.
     is_required: false
+- config_script_path:
+  opts:
+    category: Debug
+    title: Path to device configuration script
+    summary: A script executed in shell before starting AVD manager.
 - emulator_channel: "0"
   opts:
     category: Debug
