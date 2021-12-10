@@ -26,3 +26,14 @@ workflows:
         - profile: pixel_2
         - api_level: 30
     - wait-for-android-emulator: { }
+    - script:
+        is_always_run: true
+        inputs:
+        - content: |
+            #!/bin/bash
+            set -x
+            adb -s $BITRISE_EMULATOR_SERIAL emu kill
+            adb devices
+            # It takes a bit of time for the simulator to exit
+            sleep 5
+            adb devices

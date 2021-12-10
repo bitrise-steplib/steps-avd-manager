@@ -16,6 +16,7 @@ import (
 	"github.com/bitrise-io/go-steputils/tools"
 	"github.com/bitrise-io/go-utils/command"
 	"github.com/bitrise-io/go-utils/log"
+	"github.com/bitrise-io/go-utils/retry"
 	asyncCmd "github.com/go-cmd/cmd"
 	"github.com/kballard/go-shellquote"
 )
@@ -254,14 +255,25 @@ func main() {
 			stdin: strings.NewReader(no), // hitting no in case it asks for creating hw profile
 		},
 	} {
-		log.Infof(phase.name)
-		log.Donef("$ %s", strings.Join(append([]string{phase.cmdName}, phase.cmdArgs...), " "))
+		r := retry.Times(3)
+		if err := r.Try(func(attempt uint) error {
+			if attempt == 0 {
+				log.Infof(phase.name)
+				log.Donef("$ %s", strings.Join(append([]string{phase.cmdName}, phase.cmdArgs...), " "))
+			} else {
+				log.Infof("Retrying: %s", phase.name)
+				log.Donef("$ %s", strings.Join(append([]string{phase.cmdName}, phase.cmdArgs...), " "))
+			}
 
-		if out, err := runCommandWithHangTimeout(phase.cmdName, phase.cmdArgs, phase.stdin, 30*time.Second); err != nil {
-			failf("Failed to run phase: %s, output: %s", err, out)
+			if out, err := runCommandWithHangTimeout(phase.cmdName, phase.cmdArgs, phase.stdin, 30*time.Second); err != nil {
+				return fmt.Errorf("failed to run phase: %s, output: %s", err, out)
+			}
+
+			fmt.Println()
+			return nil
+		}); err != nil {
+			failf(err.Error())
 		}
-
-		fmt.Println()
 	}
 
 	args := append([]string{
