@@ -278,6 +278,8 @@ func main() {
 		}
 	}
 
+	printEmulatorVersion(emulatorPath)
+
 	args := append([]string{
 		"@" + cfg.ID,
 		"-verbose",
@@ -298,6 +300,17 @@ func main() {
 	log.Printf("- Device with serial: %s started", serial)
 
 	log.Donef("- Done")
+}
+
+func printEmulatorVersion(emulatorPath string) {
+	cmd := command.NewWithStandardOuts(emulatorPath, "-version")
+
+	log.Infof("Emulator version:")
+	log.TDonef("$ %s", cmd.PrintableCommandArgs())
+
+	if err := cmd.Run(); err != nil {
+		log.Warnf("Failed to print emulator versions: %s", err)
+	}
 }
 
 func startEmulator(emulatorPath string, args []string, androidHome string, runningDevices map[string]string, attempt int) string {
