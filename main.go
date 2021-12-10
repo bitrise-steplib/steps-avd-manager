@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -15,6 +16,7 @@ import (
 	"github.com/bitrise-io/go-steputils/tools"
 	"github.com/bitrise-io/go-utils/command"
 	"github.com/bitrise-io/go-utils/log"
+	asyncCmd "github.com/go-cmd/cmd"
 	"github.com/kballard/go-shellquote"
 )
 
@@ -115,7 +117,65 @@ func queryNewDeviceSerial(androidHome string, runningDevices map[string]string) 
 
 type phase struct {
 	name    string
-	command *command.Model
+	cmdName string
+	cmdArgs []string
+	stdin   io.Reader
+}
+
+func runCommandWithHangTimeout(name string, args []string, stdin io.Reader, timeout time.Duration) (string, error) {
+	cmdOptions := asyncCmd.Options{Buffered: false, Streaming: true}
+	envCmd := asyncCmd.NewCmdOptions(cmdOptions, name, args...)
+
+	// Store STDOUT and STDERR lines streaming from Cmd
+	var combinedOut string
+	doneChan := make(chan struct{})
+	go func() {
+		timer := time.NewTimer(timeout)
+
+		defer close(doneChan)
+		// Done when both channels have been closed
+		// https://dave.cheney.net/2013/04/30/curious-channels
+		for envCmd.Stdout != nil || envCmd.Stderr != nil {
+			select {
+			case line, open := <-envCmd.Stdout:
+				if !open {
+					envCmd.Stdout = nil
+					continue
+				}
+
+				if !timer.Stop() {
+					<-timer.C
+				}
+				timer.Reset(timeout)
+
+				combinedOut += line
+			case line, open := <-envCmd.Stderr:
+				if !open {
+					envCmd.Stderr = nil
+					continue
+				}
+
+				if !timer.Stop() {
+					<-timer.C
+				}
+				timer.Reset(timeout)
+
+				combinedOut += line
+			case <-timer.C:
+				if err := envCmd.Stop(); err != nil {
+					log.Warnf("Failed to terminate command: %s", err)
+				}
+			}
+		}
+	}()
+
+	// Run and wait for Cmd to return, discard Status
+	status := <-envCmd.StartWithStdin(stdin)
+
+	// Wait for goroutine to print everything
+	<-doneChan
+
+	return combinedOut, status.Error
 }
 
 func main() {
@@ -168,33 +228,36 @@ func main() {
 
 	for _, phase := range []phase{
 		{
-			"Updating emulator",
-			command.New(sdkManagerPath, "--verbose", "--channel="+cfg.EmulatorChannel, "emulator").
-				SetStdin(strings.NewReader(yes)), // hitting yes in case it waits for accepting license
+			name:    "Updating emulator",
+			cmdName: sdkManagerPath,
+			cmdArgs: []string{"--verbose", "--channel=" + cfg.EmulatorChannel, "emulator"},
+			stdin:   strings.NewReader(yes), // hitting yes in case it waits for accepting license
 		},
 
 		{
-			"Updating system-image packages",
-			command.New(sdkManagerPath, "--verbose", pkg).
-				SetStdin(strings.NewReader(yes)), // hitting yes in case it waits for accepting license
+			name:    "Updating system-image packages",
+			cmdName: sdkManagerPath,
+			cmdArgs: []string{"--verbose", pkg},
+			stdin:   strings.NewReader(yes), // hitting yes in case it waits for accepting license
 		},
 
 		{
-			"Creating device",
-			command.New(avdManagerPath, append([]string{
+			name:    "Creating device",
+			cmdName: avdManagerPath,
+			cmdArgs: append([]string{
 				"--verbose", "create", "avd", "--force",
 				"--name", cfg.ID,
 				"--device", cfg.DeviceProfile,
 				"--package", pkg,
 				"--tag", cfg.Tag,
-				"--abi", cfg.Abi}, createCustomFlags...)...).
-				SetStdin(strings.NewReader(no)), // hitting no in case it asks for creating hw profile
+				"--abi", cfg.Abi}, createCustomFlags...),
+			stdin: strings.NewReader(no), // hitting no in case it asks for creating hw profile
 		},
 	} {
 		log.Infof(phase.name)
-		log.Donef("$ %s", phase.command.PrintableCommandArgs())
+		log.Donef("$ %s", strings.Join(append([]string{phase.cmdName}, phase.cmdArgs...), " "))
 
-		if out, err := phase.command.RunAndReturnTrimmedCombinedOutput(); err != nil {
+		if out, err := runCommandWithHangTimeout(phase.cmdName, phase.cmdArgs, phase.stdin, 30*time.Second); err != nil {
 			failf("Failed to run phase: %s, output: %s", err, out)
 		}
 
