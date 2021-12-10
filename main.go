@@ -149,6 +149,7 @@ func runCommandWithHangTimeout(name string, args []string, stdin io.Reader, time
 				}
 				timer.Reset(timeout)
 
+				fmt.Print(".")
 				combinedOut += line
 			case line, open := <-envCmd.Stderr:
 				if !open {
@@ -161,6 +162,7 @@ func runCommandWithHangTimeout(name string, args []string, stdin io.Reader, time
 				}
 				timer.Reset(timeout)
 
+				fmt.Print(".")
 				combinedOut += line
 			case <-timer.C:
 				if err := envCmd.Stop(); err != nil {
@@ -259,10 +261,10 @@ func main() {
 		if err := r.Try(func(attempt uint) error {
 			if attempt == 0 {
 				log.Infof(phase.name)
-				log.Donef("$ %s", strings.Join(append([]string{phase.cmdName}, phase.cmdArgs...), " "))
+				log.TDonef("$ %s", strings.Join(append([]string{phase.cmdName}, phase.cmdArgs...), " "))
 			} else {
 				log.Infof("Retrying: %s", phase.name)
-				log.Donef("$ %s", strings.Join(append([]string{phase.cmdName}, phase.cmdArgs...), " "))
+				log.TDonef("$ %s", strings.Join(append([]string{phase.cmdName}, phase.cmdArgs...), " "))
 			}
 
 			if out, err := runCommandWithHangTimeout(phase.cmdName, phase.cmdArgs, phase.stdin, 30*time.Second); err != nil {
@@ -303,7 +305,7 @@ func startEmulator(emulatorPath string, args []string, androidHome string, runni
 	deviceStartCmd := command.New(emulatorPath, args...).SetStdout(&output).SetStderr(&output)
 
 	log.Infof("Starting device")
-	log.Donef("$ %s", deviceStartCmd.PrintableCommandArgs())
+	log.TDonef("$ %s", deviceStartCmd.PrintableCommandArgs())
 	// start the emlator as a detached process
 	emulatorWaitCh := make(chan error, 1)
 	if err := deviceStartCmd.GetCmd().Start(); err != nil {
