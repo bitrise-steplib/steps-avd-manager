@@ -1,11 +1,9 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"time"
 
@@ -14,6 +12,9 @@ import (
 	"github.com/bitrise-io/go-steputils/tools"
 	"github.com/bitrise-io/go-utils/command"
 	"github.com/bitrise-io/go-utils/log"
+	commandv2 "github.com/bitrise-io/go-utils/v2/command"
+	envv2 "github.com/bitrise-io/go-utils/v2/env"
+	logv2 "github.com/bitrise-io/go-utils/v2/log"
 	"github.com/kballard/go-shellquote"
 )
 
@@ -35,77 +36,9 @@ var (
 	faultIndicators = []string{" BUG: ", "Kernel panic"}
 )
 
-func runningDeviceInfos(androidHome string) (map[string]string, error) {
-	cmd := command.New(filepath.Join(androidHome, "platform-tools", "adb"), "devices")
-	out, err := cmd.RunAndReturnTrimmedCombinedOutput()
-	if err != nil {
-		return map[string]string{}, fmt.Errorf("command failed, error: %s", err)
-	}
-
-	log.Debugf("$ %s", cmd.PrintableCommandArgs())
-	log.Debugf("%s", out)
-
-	// List of devices attached
-	// emulator-5554	device
-	deviceListItemPattern := `^(?P<emulator>emulator-\d*)[\s+](?P<state>.*)`
-	deviceListItemRegexp := regexp.MustCompile(deviceListItemPattern)
-
-	deviceStateMap := map[string]string{}
-
-	scanner := bufio.NewScanner(strings.NewReader(out))
-	for scanner.Scan() {
-		line := scanner.Text()
-		matches := deviceListItemRegexp.FindStringSubmatch(line)
-		if len(matches) == 3 {
-			serial := matches[1]
-			state := matches[2]
-
-			deviceStateMap[serial] = state
-		}
-
-	}
-	if scanner.Err() != nil {
-		return map[string]string{}, fmt.Errorf("scanner failed, error: %s", err)
-	}
-
-	return deviceStateMap, nil
-}
-
 func failf(msg string, args ...interface{}) {
 	log.Errorf(msg, args...)
 	os.Exit(1)
-}
-
-func currentlyStartedDeviceSerial(alreadyRunningDeviceInfos, currentlyRunningDeviceInfos map[string]string) string {
-	startedSerial := ""
-
-	for serial := range currentlyRunningDeviceInfos {
-		_, found := alreadyRunningDeviceInfos[serial]
-		if !found {
-			startedSerial = serial
-			break
-		}
-	}
-
-	if len(startedSerial) > 0 {
-		state := currentlyRunningDeviceInfos[startedSerial]
-		if state == "device" {
-			return startedSerial
-		}
-	}
-
-	return ""
-}
-
-func queryNewDeviceSerial(androidHome string, runningDevices map[string]string) (string, error) {
-	currentRunningDevices, err := runningDeviceInfos(androidHome)
-	if err != nil {
-		return "", fmt.Errorf("failed to check running devices: %s", err)
-	}
-
-	serial := currentlyStartedDeviceSerial(runningDevices, currentRunningDevices)
-
-	return serial, nil
 }
 
 type phase struct {
@@ -132,11 +65,6 @@ func main() {
 	}
 
 	androidHome := androidSdk.GetAndroidHome()
-	runningDevices, err := runningDeviceInfos(androidHome)
-	if err != nil {
-		failf("Failed to check running devices, error: %s", err)
-	}
-
 	cmdlineToolsPath, err := androidSdk.CmdlineToolsPath()
 	if err != nil {
 		failf("Could not locate Android command-line tools: %v", err)
@@ -198,25 +126,12 @@ func main() {
 
 	printEmulatorVersion(emulatorPath)
 
-	args := append([]string{
-		"@" + cfg.ID,
-		"-verbose",
-		"-show-kernel",
-		"-no-audio",
-		"-no-window",
-		"-no-boot-anim",
-		"-netdelay", "none",
-		"-no-snapshot",
-		"-wipe-data",
-		"-gpu", "swiftshader_indirect"}, startCustomFlags...)
+	emulatorManager := NewEmulatorManager(androidHome, commandv2.NewFactory(envv2.NewRepository()), logv2.NewLogger())
 
 	fmt.Println()
 	log.Infof("Start emulator")
 
-	const timeout = 10 * time.Minute
-
-	timeoutT := time.After(timeout)
-	serial, err := startEmulator(emulatorPath, args, androidHome, runningDevices, timeoutT)
+	serial, err := emulatorManager.StartEmulator(cfg.ID, startCustomFlags, 10*time.Minute)
 	if err != nil {
 		failf(err.Error())
 	}
