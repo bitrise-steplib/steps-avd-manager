@@ -6,52 +6,81 @@ import (
 	"strings"
 	"time"
 
-	asyncCmd "github.com/go-cmd/cmd"
-
 	"github.com/bitrise-io/go-utils/log"
+	asyncCmd "github.com/go-cmd/cmd"
 )
 
-func checkDeviceSerial(androidHome string, runningDevices map[string]string, errChan chan error, serialChan chan string) {
-	var serial string
+func checkDeviceSerial(androidHome string, runningDevices map[string]string, errChan chan<- error) chan string {
+	serialChan := make(chan string)
 
-	for {
-		var err error
-		serial, err = queryNewDeviceSerial(androidHome, runningDevices)
-		if err != nil {
-			log.Warnf("failed to query serial: %s", err)
-			errChan <- err
-		} else if serial != "" {
-			log.Warnf("serial found: %s", serial)
-			serialChan <- serial
+	go func() {
+		for {
+			serial, err := queryNewDeviceSerial(androidHome, runningDevices)
+			switch {
+			case err != nil:
+				log.Warnf("failed to query serial: %s", err)
+				errChan <- err
+				return
+			case serial != "":
+				log.Warnf("serial found: %s", serial)
+				serialChan <- serial
+				return
+			default:
+				log.Warnf("serial not found")
+			}
+
+			time.Sleep(2 * time.Second)
 		}
+	}()
 
-		time.Sleep(5 * time.Second)
-	}
+	return serialChan
 }
 
-func handleFault(line string, cmd *asyncCmd.Cmd) {
-	if containsAny(line, faultIndicators) {
-		log.Warnf("Emulator log contains fault")
-		log.Warnf("Emulator log: %s", line)
-		if err := cmd.Stop(); err != nil {
-			log.Warnf("Failed to terminate command: %s", err)
+func handleOutput(stdoutChan, stderrChan <-chan string, errChan chan<- error) {
+	handleFault := func(line string) {
+		if containsAny(line, faultIndicators) {
+			log.Warnf("Emulator log contains fault: %s", line)
+			errChan <- fmt.Errorf("emulator start failed: %s", line)
 		}
 	}
-}
 
-func handleOutput(cmd *asyncCmd.Cmd, stdoutChan, stderrChan <-chan string, doneChan <-chan struct{}) {
 	for {
 		select {
 		case line := <-stdoutChan:
 			fmt.Fprintln(os.Stdout, line)
-			handleFault(line, cmd)
+			handleFault(line)
 		case line := <-stderrChan:
 			fmt.Fprintln(os.Stderr, line)
-			handleFault(line, cmd)
-		case <-doneChan:
-			return
+			handleFault(line)
 		}
 	}
+}
+
+func broadcastStdoutAndStderr(cmd *asyncCmd.Cmd) (stdoutChan chan string, stderrChan chan string) {
+	stdoutChan, stderrChan = make(chan string), make(chan string)
+	go func() {
+		for cmd.Stdout != nil || cmd.Stderr != nil {
+			select {
+			case line, open := <-cmd.Stdout:
+				if !open {
+					cmd.Stdout = nil
+					continue
+				}
+
+				stdoutChan <- line
+			case line, open := <-cmd.Stderr:
+				if !open {
+					cmd.Stderr = nil
+					continue
+				}
+
+				stderrChan <- line
+			}
+		}
+
+		log.Warnf("stdout and stderr is closed")
+	}()
+	return
 }
 
 func startEmulator2(emulatorPath string, args []string, androidHome string, runningDevices map[string]string, timeoutChan <-chan time.Time) (string, error) {
@@ -60,15 +89,11 @@ func startEmulator2(emulatorPath string, args []string, androidHome string, runn
 	cmdOptions := asyncCmd.Options{Buffered: false, Streaming: true}
 	cmd := asyncCmd.NewCmdOptions(cmdOptions, emulatorPath, args...)
 
-	doneChan := make(chan struct{})
-	stdoutChan := make(chan string)
-	stderrChan := make(chan string)
 	errChan := make(chan error)
-	serialChan := make(chan string)
 
-	go handleOutput(cmd, stdoutChan, stderrChan, doneChan)
-	go checkDeviceSerial(androidHome, runningDevices, errChan, serialChan)
-	go broadcastStdoutAndStderr(cmd, stdoutChan, stderrChan, doneChan)
+	serialChan := checkDeviceSerial(androidHome, runningDevices, errChan)
+	stdoutChan, stderrChan := broadcastStdoutAndStderr(cmd)
+	go handleOutput(stdoutChan, stderrChan, errChan)
 
 	select {
 	case <-cmd.Start():
@@ -76,12 +101,15 @@ func startEmulator2(emulatorPath string, args []string, androidHome string, runn
 		return startEmulator2(emulatorPath, args, androidHome, runningDevices, timeoutChan)
 	case err := <-errChan:
 		log.Warnf("error occurred: %", err)
+		if err := cmd.Stop(); err != nil {
+			log.Warnf("Failed to terminate emulator command: %s", err)
+		}
+		log.Warnf("restarting emulator...")
 		return startEmulator2(emulatorPath, args, androidHome, runningDevices, timeoutChan)
 	case serial := <-serialChan:
 		return serial, nil
 	case <-timeoutChan:
 		log.Warnf("timeout")
 		return "", fmt.Errorf("timeout")
-
 	}
 }

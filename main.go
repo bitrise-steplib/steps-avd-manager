@@ -2,9 +2,7 @@ package main
 
 import (
 	"bufio"
-	"bytes"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -16,7 +14,6 @@ import (
 	"github.com/bitrise-io/go-steputils/tools"
 	"github.com/bitrise-io/go-utils/command"
 	"github.com/bitrise-io/go-utils/log"
-	"github.com/bitrise-io/go-utils/retry"
 	"github.com/kballard/go-shellquote"
 )
 
@@ -117,9 +114,7 @@ func queryNewDeviceSerial(androidHome string, runningDevices map[string]string) 
 
 type phase struct {
 	name    string
-	cmdName string
-	cmdArgs []string
-	stdin   io.Reader
+	command *command.Model
 }
 
 func main() {
@@ -172,50 +167,37 @@ func main() {
 
 	for _, phase := range []phase{
 		{
-			name:    "Updating emulator",
-			cmdName: sdkManagerPath,
-			cmdArgs: []string{"--verbose", "--channel=" + cfg.EmulatorChannel, "emulator"},
-			stdin:   strings.NewReader(yes), // hitting yes in case it waits for accepting license
+			"Updating emulator",
+			command.New(sdkManagerPath, "--verbose", "--channel="+cfg.EmulatorChannel, "emulator").
+				SetStdin(strings.NewReader(yes)), // hitting yes in case it waits for accepting license
 		},
 
 		{
-			name:    "Updating system-image packages",
-			cmdName: sdkManagerPath,
-			cmdArgs: []string{"--verbose", pkg},
-			stdin:   strings.NewReader(yes), // hitting yes in case it waits for accepting license
+			"Updating system-image packages",
+			command.New(sdkManagerPath, "--verbose", pkg).
+				SetStdin(strings.NewReader(yes)), // hitting yes in case it waits for accepting license
 		},
 
 		{
-			name:    "Creating device",
-			cmdName: avdManagerPath,
-			cmdArgs: append([]string{
+			"Creating device",
+			command.New(avdManagerPath, append([]string{
 				"--verbose", "create", "avd", "--force",
 				"--name", cfg.ID,
 				"--device", cfg.DeviceProfile,
 				"--package", pkg,
 				"--tag", cfg.Tag,
-				"--abi", cfg.Abi}, createCustomFlags...),
-			stdin: strings.NewReader(no), // hitting no in case it asks for creating hw profile
+				"--abi", cfg.Abi}, createCustomFlags...)...).
+				SetStdin(strings.NewReader(no)), // hitting no in case it asks for creating hw profile
 		},
 	} {
-		const retryCount = 3
-		const silenceTimeout = 2 * time.Minute
-		const timeout = 5 * time.Minute
+		log.Infof(phase.name)
+		log.TDonef("$ %s", phase.command.PrintableCommandArgs())
 
-		r := retry.Times(retryCount)
-		if err := r.Try(func(attempt uint) error {
-			if attempt == 0 {
-				log.Infof(phase.name)
-				log.TDonef("$ %s", strings.Join(append([]string{phase.cmdName}, phase.cmdArgs...), " "))
-			} else {
-				log.Infof("Retrying: %s", phase.name)
-				log.TDonef("$ %s", strings.Join(append([]string{phase.cmdName}, phase.cmdArgs...), " "))
-			}
-
-			return run(phase.cmdName, phase.cmdArgs, phase.stdin, silenceTimeout, timeout)
-		}); err != nil {
-			failf(err.Error())
+		if out, err := phase.command.RunAndReturnTrimmedCombinedOutput(); err != nil {
+			failf("Failed to run phase: %s, output: %s", err, out)
 		}
+
+		fmt.Println()
 	}
 
 	printEmulatorVersion(emulatorPath)
@@ -232,8 +214,7 @@ func main() {
 		"-wipe-data",
 		"-gpu", "swiftshader_indirect"}, startCustomFlags...)
 
-	//serial := startEmulator(emulatorPath, args, androidHome, runningDevices, 1)
-
+	fmt.Println()
 	log.Infof("Start emulator")
 
 	const timeout = 5 * time.Minute
@@ -253,78 +234,21 @@ func main() {
 }
 
 func printEmulatorVersion(emulatorPath string) {
-	cmd := command.NewWithStandardOuts(emulatorPath, "-version")
+	cmd := command.New(emulatorPath, "-version")
 
 	log.Infof("Emulator version:")
 	log.TDonef("$ %s", cmd.PrintableCommandArgs())
 
-	if err := cmd.Run(); err != nil {
+	out, err := cmd.RunAndReturnTrimmedCombinedOutput()
+	if err != nil {
 		log.Warnf("Failed to print emulator versions: %s", err)
 	}
-}
-
-func startEmulator(emulatorPath string, args []string, androidHome string, runningDevices map[string]string, attempt int) string {
-	var output bytes.Buffer
-	deviceStartCmd := command.New(emulatorPath, args...).SetStdout(&output).SetStderr(&output)
-
-	log.Infof("Starting device")
-	log.TDonef("$ %s", deviceStartCmd.PrintableCommandArgs())
-	// start the emlator as a detached process
-	emulatorWaitCh := make(chan error, 1)
-	if err := deviceStartCmd.GetCmd().Start(); err != nil {
-		failf("Failed to run device start command: %v", err)
+	s := strings.Split(out, "\n")
+	if len(s) > 0 {
+		log.Printf(s[0])
+	} else {
+		log.Printf(out)
 	}
-	go func() {
-		emulatorWaitCh <- deviceStartCmd.GetCmd().Wait()
-	}()
-
-	var serial string
-	const bootWaitTime = time.Duration(300)
-	timeout := time.NewTimer(bootWaitTime * time.Second)
-	deviceCheckTicker := time.NewTicker(5 * time.Second)
-	retry := false
-waitLoop:
-	for {
-		select {
-		case err := <-emulatorWaitCh:
-			log.Warnf("Emulator log: %s", output)
-			if err != nil {
-				failf("Emulator exited unexpectedly: %v", err)
-			}
-			failf("Emulator exited early, without error. A possible cause can be the emulator process having received a KILL signal.")
-		case <-timeout.C:
-			log.Warnf("Emulator log: %s", output)
-			failf("Failed to boot emulator device within %d seconds.", bootWaitTime)
-		case <-deviceCheckTicker.C:
-			var err error
-			serial, err = queryNewDeviceSerial(androidHome, runningDevices)
-			if err != nil {
-				failf("Error: %s", err)
-			} else if serial != "" {
-				break waitLoop
-			}
-			if containsAny(output.String(), faultIndicators) {
-				log.Warnf("Emulator log contains fault")
-				log.Warnf("Emulator log: %s", output)
-				if err := deviceStartCmd.GetCmd().Process.Kill(); err != nil {
-					failf("Couldn't finish emulator process: %v", err)
-				}
-				if attempt < maxAttempts {
-					log.Warnf("Trying to start emulator process again...")
-					retry = true
-					break waitLoop
-				} else {
-					failf("Failed to boot device due to faults after %d tries", maxAttempts)
-				}
-			}
-		}
-	}
-	timeout.Stop()
-	deviceCheckTicker.Stop()
-	if retry {
-		return startEmulator(emulatorPath, args, androidHome, runningDevices, attempt+1)
-	}
-	return serial
 }
 
 func containsAny(output string, any []string) bool {
