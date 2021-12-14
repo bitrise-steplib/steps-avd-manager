@@ -17,7 +17,6 @@ import (
 	"github.com/bitrise-io/go-utils/command"
 	"github.com/bitrise-io/go-utils/log"
 	"github.com/bitrise-io/go-utils/retry"
-	asyncCmd "github.com/go-cmd/cmd"
 	"github.com/kballard/go-shellquote"
 )
 
@@ -123,64 +122,6 @@ type phase struct {
 	stdin   io.Reader
 }
 
-func runCommandWithHangTimeout(name string, args []string, stdin io.Reader, timeout time.Duration) (string, error) {
-	cmdOptions := asyncCmd.Options{Buffered: false, Streaming: true}
-	envCmd := asyncCmd.NewCmdOptions(cmdOptions, name, args...)
-
-	// Store STDOUT and STDERR lines streaming from Cmd
-	var combinedOut string
-	doneChan := make(chan struct{})
-	go func() {
-		timer := time.NewTimer(timeout)
-
-		defer close(doneChan)
-		// Done when both channels have been closed
-		// https://dave.cheney.net/2013/04/30/curious-channels
-		for envCmd.Stdout != nil || envCmd.Stderr != nil {
-			select {
-			case line, open := <-envCmd.Stdout:
-				if !open {
-					envCmd.Stdout = nil
-					continue
-				}
-
-				if !timer.Stop() {
-					<-timer.C
-				}
-				timer.Reset(timeout)
-
-				fmt.Print(".")
-				combinedOut += line
-			case line, open := <-envCmd.Stderr:
-				if !open {
-					envCmd.Stderr = nil
-					continue
-				}
-
-				if !timer.Stop() {
-					<-timer.C
-				}
-				timer.Reset(timeout)
-
-				fmt.Print(".")
-				combinedOut += line
-			case <-timer.C:
-				if err := envCmd.Stop(); err != nil {
-					log.Warnf("Failed to terminate command: %s", err)
-				}
-			}
-		}
-	}()
-
-	// Run and wait for Cmd to return, discard Status
-	status := <-envCmd.StartWithStdin(stdin)
-
-	// Wait for goroutine to print everything
-	<-doneChan
-
-	return combinedOut, status.Error
-}
-
 func main() {
 	var cfg config
 	if err := stepconf.Parse(&cfg); err != nil {
@@ -257,7 +198,11 @@ func main() {
 			stdin: strings.NewReader(no), // hitting no in case it asks for creating hw profile
 		},
 	} {
-		r := retry.Times(3)
+		const retryCount = 3
+		const silenceTimeout = 30 * time.Second
+		const timeout = 2 * time.Minute
+
+		r := retry.Times(retryCount)
 		if err := r.Try(func(attempt uint) error {
 			if attempt == 0 {
 				log.Infof(phase.name)
@@ -267,12 +212,7 @@ func main() {
 				log.TDonef("$ %s", strings.Join(append([]string{phase.cmdName}, phase.cmdArgs...), " "))
 			}
 
-			if out, err := runCommandWithHangTimeout(phase.cmdName, phase.cmdArgs, phase.stdin, 30*time.Second); err != nil {
-				return fmt.Errorf("failed to run phase: %s, output: %s", err, out)
-			}
-
-			fmt.Println()
-			return nil
+			return run(phase.cmdName, phase.cmdArgs, phase.stdin, silenceTimeout, timeout)
 		}); err != nil {
 			failf(err.Error())
 		}
@@ -292,7 +232,15 @@ func main() {
 		"-wipe-data",
 		"-gpu", "swiftshader_indirect"}, startCustomFlags...)
 
-	serial := startEmulator(emulatorPath, args, androidHome, runningDevices, 1)
+	//serial := startEmulator(emulatorPath, args, androidHome, runningDevices, 1)
+
+	log.Infof("Start emulator")
+
+	timeout := time.After(5 * time.Minute)
+	serial, err := startEmulator2(emulatorPath, args, androidHome, runningDevices, timeout)
+	if err != nil {
+		failf(err.Error())
+	}
 
 	if err := tools.ExportEnvironmentWithEnvman("BITRISE_EMULATOR_SERIAL", serial); err != nil {
 		log.Warnf("Failed to export environment (BITRISE_EMULATOR_SERIAL), error: %s", err)

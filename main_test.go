@@ -7,10 +7,11 @@ import (
 
 func Test_runCommandWithHangTimeout(t *testing.T) {
 	tests := []struct {
-		name    string
-		script  string
-		timeout time.Duration
-		wantErr bool
+		name           string
+		script         string
+		silenceTimeout time.Duration
+		timeout        time.Duration
+		wantErr        bool
 	}{
 		{
 			name:    "Simple timeout",
@@ -19,7 +20,7 @@ func Test_runCommandWithHangTimeout(t *testing.T) {
 			wantErr: true, // signal: terminated
 		},
 		{
-			name: "Content on stdout resets timer",
+			name: "Content on stdout resets silence timer",
 			script: `
 sleep 2
 echo 1
@@ -28,24 +29,30 @@ echo 2
 sleep 2
 echo 3
 sleep 2`,
-			timeout: 5 * time.Second,
-			wantErr: false,
+			silenceTimeout: 5 * time.Second,
+			wantErr:        false,
 		},
 		{
-			name: "Content on stdout resets timer",
+			name: "If silence timeout goes by it fails",
 			script: `
 sleep 2
 echo 1
 sleep 2
 echo 2
 sleep 10`,
-			timeout: 5 * time.Second,
-			wantErr: true, // signal: terminated
+			silenceTimeout: 5 * time.Second,
+			wantErr:        true, // signal: terminated
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := runCommandWithHangTimeout("bash", []string{"-c", tt.script}, nil, tt.timeout)
+			if tt.silenceTimeout == 0 {
+				tt.silenceTimeout = 1 * time.Hour
+			}
+			if tt.timeout == 0 {
+				tt.timeout = 1 * time.Hour
+			}
+			err := run("bash", []string{"-c", tt.script}, nil, tt.silenceTimeout, tt.timeout)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("runCommandWithHangTimeout() error = %v, wantErr %v", err, tt.wantErr)
 			}
