@@ -83,7 +83,7 @@ func broadcastStdoutAndStderr(cmd *asyncCmd.Cmd) (stdoutChan chan string, stderr
 	return
 }
 
-func startEmulator2(emulatorPath string, args []string, androidHome string, runningDevices map[string]string, timeoutChan <-chan time.Time) (string, error) {
+func startEmulator(emulatorPath string, args []string, androidHome string, runningDevices map[string]string, timeoutChan <-chan time.Time) (string, error) {
 	log.TDonef("$ %s", strings.Join(append([]string{emulatorPath}, args...), " "))
 
 	cmdOptions := asyncCmd.Options{Buffered: false, Streaming: true}
@@ -98,14 +98,14 @@ func startEmulator2(emulatorPath string, args []string, androidHome string, runn
 	select {
 	case <-cmd.Start():
 		log.Warnf("emulator exited unexpectedly")
-		return startEmulator2(emulatorPath, args, androidHome, runningDevices, timeoutChan)
+		return startEmulator(emulatorPath, args, androidHome, runningDevices, timeoutChan)
 	case err := <-errChan:
 		log.Warnf("error occurred: %", err)
 		if err := cmd.Stop(); err != nil {
 			log.Warnf("Failed to terminate emulator command: %s", err)
 		}
 		log.Warnf("restarting emulator...")
-		return startEmulator2(emulatorPath, args, androidHome, runningDevices, timeoutChan)
+		return startEmulator(emulatorPath, args, androidHome, runningDevices, timeoutChan)
 	case serial := <-serialChan:
 		return serial, nil
 	case <-timeoutChan:

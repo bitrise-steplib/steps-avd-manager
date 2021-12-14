@@ -35,10 +35,6 @@ var (
 	faultIndicators = []string{" BUG: ", "Kernel panic"}
 )
 
-const (
-	maxAttempts = 5
-)
-
 func runningDeviceInfos(androidHome string) (map[string]string, error) {
 	cmd := command.New(filepath.Join(androidHome, "platform-tools", "adb"), "devices")
 	out, err := cmd.RunAndReturnTrimmedCombinedOutput()
@@ -217,10 +213,10 @@ func main() {
 	fmt.Println()
 	log.Infof("Start emulator")
 
-	const timeout = 5 * time.Minute
+	const timeout = 10 * time.Minute
 
 	timeoutT := time.After(timeout)
-	serial, err := startEmulator2(emulatorPath, args, androidHome, runningDevices, timeoutT)
+	serial, err := startEmulator(emulatorPath, args, androidHome, runningDevices, timeoutT)
 	if err != nil {
 		failf(err.Error())
 	}
