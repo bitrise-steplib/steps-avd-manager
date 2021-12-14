@@ -199,8 +199,8 @@ func main() {
 		},
 	} {
 		const retryCount = 3
-		const silenceTimeout = 30 * time.Second
-		const timeout = 2 * time.Minute
+		const silenceTimeout = 2 * time.Minute
+		const timeout = 5 * time.Minute
 
 		r := retry.Times(retryCount)
 		if err := r.Try(func(attempt uint) error {
@@ -236,8 +236,10 @@ func main() {
 
 	log.Infof("Start emulator")
 
-	timeout := time.After(5 * time.Minute)
-	serial, err := startEmulator2(emulatorPath, args, androidHome, runningDevices, timeout)
+	const timeout = 5 * time.Minute
+
+	timeoutT := time.After(timeout)
+	serial, err := startEmulator2(emulatorPath, args, androidHome, runningDevices, timeoutT)
 	if err != nil {
 		failf(err.Error())
 	}

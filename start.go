@@ -18,8 +18,10 @@ func checkDeviceSerial(androidHome string, runningDevices map[string]string, err
 		var err error
 		serial, err = queryNewDeviceSerial(androidHome, runningDevices)
 		if err != nil {
+			log.Warnf("failed to query serial: %s", err)
 			errChan <- err
 		} else if serial != "" {
+			log.Warnf("serial found: %s", serial)
 			serialChan <- serial
 		}
 
@@ -78,6 +80,7 @@ func startEmulator2(emulatorPath string, args []string, androidHome string, runn
 	case serial := <-serialChan:
 		return serial, nil
 	case <-timeoutChan:
+		log.Warnf("timeout")
 		return "", fmt.Errorf("timeout")
 
 	}

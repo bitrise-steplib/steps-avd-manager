@@ -13,6 +13,7 @@ import (
 func stopAfter(cmd *asyncCmd.Cmd, timeout time.Duration, doneChan <-chan struct{}) {
 	select {
 	case <-time.After(timeout):
+		log.Warnf("timeout out")
 		if err := cmd.Stop(); err != nil {
 			log.Warnf("Failed to terminate command: %s", err)
 		}
@@ -27,6 +28,7 @@ func stopAfterSilence(cmd *asyncCmd.Cmd, timeout time.Duration, stdoutChan, stde
 		case <-stdoutChan:
 		case <-stderrChan:
 		case <-time.After(timeout):
+			log.Warnf("timeout out after silence")
 			if err := cmd.Stop(); err != nil {
 				log.Warnf("Failed to terminate command: %s", err)
 			}
@@ -58,6 +60,8 @@ func broadcastStdoutAndStderr(cmd *asyncCmd.Cmd, stdoutChan, stderrChan chan<- s
 			stderrChan <- line
 		}
 	}
+
+	log.Warnf("stdout and stderr is closed")
 }
 
 func printOutput(stdoutChan, stderrChan <-chan string, doneChan <-chan struct{}) {
@@ -89,8 +93,16 @@ func run(name string, args []string, stdin io.Reader, silenceTimeout time.Durati
 	// Run and wait for Cmd to return
 	status := <-cmd.StartWithStdin(stdin)
 
+	log.Warnf("cmd returned with status: %d, error: %s", status.Exit, status.Error)
+
 	// Wait for goroutine to print everything
 	<-doneChan
+
+	log.Warnf("all output write is done")
+
+	if status.Exit != 0 && status.Error == nil {
+		return fmt.Errorf("exit status %d", status.Exit)
+	}
 
 	return status.Error
 }
