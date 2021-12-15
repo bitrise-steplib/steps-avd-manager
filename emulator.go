@@ -7,27 +7,26 @@ import (
 	"strings"
 	"time"
 
+	"github.com/bitrise-io/go-android/adbmanager"
+	"github.com/bitrise-io/go-android/sdk"
+	androidSDK "github.com/bitrise-io/go-android/sdk"
 	"github.com/bitrise-io/go-utils/v2/command"
 	"github.com/bitrise-io/go-utils/v2/log"
 	asyncCmd "github.com/go-cmd/cmd"
 )
 
 type EmulatorManager struct {
-	androidHome string
-	adbManager  ADBManager
-	logger      log.Logger
+	sdk        sdk.AndroidSdkInterface
+	adbManager adbmanager.Manager
+	logger     log.Logger
 }
 
-func NewEmulatorManager(androidHome string, commandFactory command.Factory, logger log.Logger) EmulatorManager {
+func NewEmulatorManager(sdk androidSDK.AndroidSdkInterface, commandFactory command.Factory, logger log.Logger) EmulatorManager {
 	return EmulatorManager{
-		androidHome: androidHome,
-		adbManager:  NewADBManager(androidHome, commandFactory, logger),
-		logger:      logger,
+		sdk:        sdk,
+		adbManager: adbmanager.NewManager(sdk, commandFactory, logger),
+		logger:     logger,
 	}
-}
-
-func (m EmulatorManager) emulator() string {
-	return filepath.Join(m.androidHome, "emulator", "emulator")
 }
 
 // TODO: Your emulator is out of date, please update by launching Android Studio:
@@ -46,7 +45,9 @@ func (m EmulatorManager) StartEmulator(name string, args []string, timeout time.
 		"-gpu", "swiftshader_indirect"}, args...)
 
 	if err := m.adbManager.StartServer(); err != nil {
-		failf("Failed to start adb server: %s", err)
+		if err := m.adbManager.RestartServer(); err != nil {
+			failf("Failed to start adb server: %s", err)
+		}
 	}
 
 	devices, err := m.adbManager.Devices()
@@ -63,7 +64,7 @@ func (m EmulatorManager) StartEmulator(name string, args []string, timeout time.
 
 	errChan := make(chan error)
 
-	serialChan := m.checkDeviceSerial(devices, errChan)
+	serialChan := m.checkDeviceSerial(devices)
 	stdoutChan, stderrChan := m.broadcastStdoutAndStderr(cmd)
 	go m.handleOutput(stdoutChan, stderrChan, errChan)
 
@@ -86,21 +87,29 @@ func (m EmulatorManager) StartEmulator(name string, args []string, timeout time.
 	}
 }
 
-func (m EmulatorManager) checkDeviceSerial(runningDevices map[string]string, errChan chan<- error) chan string {
+func (m EmulatorManager) emulator() string {
+	return filepath.Join(m.sdk.AndroidHome(), "emulator", "emulator")
+}
+
+func (m EmulatorManager) checkDeviceSerial(runningDevices map[string]string) chan string {
 	serialChan := make(chan string)
 
 	go func() {
 		for {
-			serial, err := m.adbManager.FirstNewDeviceSerial(runningDevices)
+			serial, state, err := m.adbManager.NewDevice(runningDevices)
 			switch {
 			case err != nil:
 				m.logger.Warnf("failed to query serial: %s", err)
-				errChan <- err
-				return
+				m.logger.Warnf("restart adb server and retry...")
+				if err := m.adbManager.RestartServer(); err != nil {
+					m.logger.Warnf("failed to restart adb server: %s", err)
+				}
 			case serial != "":
-				m.logger.Warnf("serial found: %s", serial)
-				serialChan <- serial
-				return
+				m.logger.Warnf("new emulator found: %s, state: %s", serial, state)
+				if state == "device" {
+					serialChan <- serial
+					return
+				}
 			default:
 				m.logger.Warnf("serial not found")
 			}

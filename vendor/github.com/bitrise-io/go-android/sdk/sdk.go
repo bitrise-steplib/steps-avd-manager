@@ -32,8 +32,10 @@ func NewEnvironment() *Environment {
 
 // AndroidSdkInterface ...
 type AndroidSdkInterface interface {
-	GetAndroidHome() string
-	CmdlineToolsPath() (string, error)
+	AndroidHome() string
+	CmdlineTools() (string, error)
+	BuildTools() (string, error)
+	PlatformTools() string
 }
 
 // New creates a Model with a supplied Android SDK path
@@ -88,14 +90,19 @@ func validateAndroidSDKRoot(androidSDKRoot string) (string, error) {
 	return evaluatedSDKRoot, nil
 }
 
-// GetAndroidHome ...
-func (model *Model) GetAndroidHome() string {
+// AndroidHome ...
+func (model *Model) AndroidHome() string {
 	return model.androidHome
 }
 
-// LatestBuildToolsDir ...
-func (model *Model) LatestBuildToolsDir() (string, error) {
-	buildTools := filepath.Join(model.androidHome, "build-tools")
+// PlatformTools ...
+func (model *Model) PlatformTools() string {
+	return filepath.Join(model.AndroidHome(), "platform-tools")
+}
+
+// BuildTools ...
+func (model *Model) BuildTools() (string, error) {
+	buildTools := filepath.Join(model.AndroidHome(), "build-tools")
 	pattern := filepath.Join(buildTools, "*")
 
 	buildToolsDirs, err := filepath.Glob(pattern)
@@ -123,9 +130,9 @@ func (model *Model) LatestBuildToolsDir() (string, error) {
 	return filepath.Join(buildTools, latestVersion.String()), nil
 }
 
-// LatestBuildToolPath ...
-func (model *Model) LatestBuildToolPath(name string) (string, error) {
-	buildToolsDir, err := model.LatestBuildToolsDir()
+// BuildTool ...
+func (model *Model) BuildTool(name string) (string, error) {
+	buildToolsDir, err := model.BuildTools()
 	if err != nil {
 		return "", err
 	}
@@ -140,13 +147,13 @@ func (model *Model) LatestBuildToolPath(name string) (string, error) {
 	return pth, nil
 }
 
-// CmdlineToolsPath locates the command-line tools directory
-func (model *Model) CmdlineToolsPath() (string, error) {
+// CmdlineTools locates the command-line tools directory
+func (model *Model) CmdlineTools() (string, error) {
 	toolPaths := []string{
-		filepath.Join(model.GetAndroidHome(), "cmdline-tools", "latest", "bin"),
-		filepath.Join(model.GetAndroidHome(), "cmdline-tools", "*", "bin"),
-		filepath.Join(model.GetAndroidHome(), "tools", "bin"),
-		filepath.Join(model.GetAndroidHome(), "tools"), // legacy
+		filepath.Join(model.AndroidHome(), "cmdline-tools", "latest", "bin"),
+		filepath.Join(model.AndroidHome(), "cmdline-tools", "*", "bin"),
+		filepath.Join(model.AndroidHome(), "tools", "bin"),
+		filepath.Join(model.AndroidHome(), "tools"), // legacy
 	}
 
 	var warnings []string

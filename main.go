@@ -64,8 +64,8 @@ func main() {
 		failf("Failed to initialize Android SDK: %s", err)
 	}
 
-	androidHome := androidSdk.GetAndroidHome()
-	cmdlineToolsPath, err := androidSdk.CmdlineToolsPath()
+	androidHome := androidSdk.AndroidHome()
+	cmdlineToolsPath, err := androidSdk.CmdlineTools()
 	if err != nil {
 		failf("Could not locate Android command-line tools: %v", err)
 	}
@@ -126,7 +126,7 @@ func main() {
 
 	printEmulatorVersion(emulatorPath)
 
-	emulatorManager := NewEmulatorManager(androidHome, commandv2.NewFactory(envv2.NewRepository()), logv2.NewLogger())
+	emulatorManager := NewEmulatorManager(androidSdk, commandv2.NewFactory(envv2.NewRepository()), logv2.NewLogger())
 
 	fmt.Println()
 	log.Infof("Start emulator")
