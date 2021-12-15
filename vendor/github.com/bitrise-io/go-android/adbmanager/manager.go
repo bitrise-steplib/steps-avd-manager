@@ -95,11 +95,7 @@ func (m Manager) WaitForDeviceShell(serial string, commands ...string) (string, 
 
 // UnlockDevice ...
 func (m Manager) UnlockDevice(serial string) (string, error) {
-	out, err := m.WaitForDeviceShell(serial, "input", "82", "&")
-	if err != nil {
-		return out, err
-	}
-	return m.WaitForDeviceShell(serial, "input", "1", "&")
+	return m.WaitForDeviceShell(serial, "input", "keyevent", "82")
 }
 
 func (m Manager) adb() string {
