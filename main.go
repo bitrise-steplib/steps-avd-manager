@@ -60,7 +60,6 @@ func main() {
 		failf("Failed to initialize Android SDK: %s", err)
 	}
 
-	androidHome := androidSdk.AndroidHome()
 	cmdlineToolsPath, err := androidSdk.CmdlineTools()
 	if err != nil {
 		failf("Could not locate Android command-line tools: %v", err)
@@ -69,7 +68,6 @@ func main() {
 	var (
 		sdkManagerPath = filepath.Join(cmdlineToolsPath, "sdkmanager")
 		avdManagerPath = filepath.Join(cmdlineToolsPath, "avdmanager")
-		emulatorPath   = filepath.Join(androidHome, "emulator", "emulator")
 
 		pkg     = fmt.Sprintf("system-images;android-%d;%s;%s", cfg.APILevel, cfg.Tag, cfg.Abi)
 		yes, no = strings.Repeat("yes\n", 20), strings.Repeat("no\n", 20)
@@ -136,14 +134,4 @@ func main() {
 	log.Printf("- Device with serial: %s started", serial)
 
 	log.Donef("- Done")
-}
-
-func containsAny(output string, any []string) bool {
-	for _, fault := range any {
-		if strings.Contains(output, fault) {
-			return true
-		}
-	}
-
-	return false
 }

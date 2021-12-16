@@ -185,3 +185,13 @@ func (m EmulatorManager) broadcastStdoutAndStderr(cmd *asyncCmd.Cmd) (stdoutChan
 	}()
 	return
 }
+
+func containsAny(output string, any []string) bool {
+	for _, fault := range any {
+		if strings.Contains(output, fault) {
+			return true
+		}
+	}
+
+	return false
+}
