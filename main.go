@@ -123,7 +123,8 @@ func main() {
 	fmt.Println()
 	log.Infof("Start emulator")
 
-	serial, err := emulatorManager.StartEmulator(cfg.ID, startCustomFlags, 10*time.Minute)
+	timeoutChan := time.After(10 * time.Minute)
+	serial, err := emulatorManager.StartEmulator(cfg.ID, startCustomFlags, timeoutChan)
 	if err != nil {
 		failf(err.Error())
 	}

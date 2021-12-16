@@ -32,7 +32,7 @@ func NewEmulatorManager(sdk sdk.AndroidSdkInterface, commandFactory command.Fact
 	}
 }
 
-func (m EmulatorManager) StartEmulator(name string, args []string, timeout time.Duration) (string, error) {
+func (m EmulatorManager) StartEmulator(name string, args []string, timeoutChan <-chan time.Time) (string, error) {
 	args = append([]string{
 		"@" + name,
 		"-verbose",
@@ -58,8 +58,6 @@ func (m EmulatorManager) StartEmulator(name string, args []string, timeout time.
 		return "", err
 	}
 
-	timeoutChan := time.After(timeout)
-
 	m.logger.TDonef("$ %s", strings.Join(append([]string{m.emulator()}, args...), " "))
 
 	cmdOptions := asyncCmd.Options{Buffered: false, Streaming: true}
@@ -67,25 +65,40 @@ func (m EmulatorManager) StartEmulator(name string, args []string, timeout time.
 
 	errChan := make(chan error)
 
-	serialChan := m.checkDeviceSerial(devices)
+	serialChan := m.queryNewDevice(devices)
 	stdoutChan, stderrChan := m.broadcastStdoutAndStderr(cmd)
 	go m.handleOutput(stdoutChan, stderrChan, errChan)
 
-	select {
-	case <-cmd.Start():
-		m.logger.Warnf("emulator exited unexpectedly")
-		return m.StartEmulator(name, args, timeout)
-	case err := <-errChan:
-		m.logger.Warnf("error occurred: %", err)
-		if err := cmd.Stop(); err != nil {
-			m.logger.Warnf("failed to terminate emulator: %s", err)
+	serial := ""
+
+	for {
+		select {
+		case <-cmd.Start():
+			m.logger.Warnf("emulator exited unexpectedly")
+			return m.StartEmulator(name, args, timeoutChan)
+		case err := <-errChan:
+			m.logger.Warnf("error occurred: %s", err)
+
+			if err := cmd.Stop(); err != nil {
+				m.logger.Warnf("failed to terminate emulator: %s", err)
+			}
+
+			if serial != "" {
+				if err := m.adbManager.KillEmulator(serial); err != nil {
+					m.logger.Warnf("failed to kill %s: %s", serial, err)
+				}
+			}
+
+			m.logger.Warnf("restarting emulator...")
+			return m.StartEmulator(name, args, timeoutChan)
+		case res := <-serialChan:
+			serial = res.Serial
+			if res.State == "device" {
+				return res.Serial, nil
+			}
+		case <-timeoutChan:
+			return "", fmt.Errorf("timeout")
 		}
-		m.logger.Warnf("restarting emulator...")
-		return m.StartEmulator(name, args, timeout)
-	case serial := <-serialChan:
-		return serial, nil
-	case <-timeoutChan:
-		return "", fmt.Errorf("timeout")
 	}
 }
 
@@ -93,8 +106,13 @@ func (m EmulatorManager) emulator() string {
 	return filepath.Join(m.sdk.AndroidHome(), "emulator", "emulator")
 }
 
-func (m EmulatorManager) checkDeviceSerial(runningDevices map[string]string) chan string {
-	serialChan := make(chan string)
+type QueryNewDeviceResult struct {
+	Serial string
+	State  string
+}
+
+func (m EmulatorManager) queryNewDevice(runningDevices map[string]string) chan QueryNewDeviceResult {
+	serialChan := make(chan QueryNewDeviceResult)
 
 	go func() {
 		attempt := 0
@@ -121,10 +139,12 @@ func (m EmulatorManager) checkDeviceSerial(runningDevices map[string]string) cha
 				attempt = 0 // avoid restarting adb server twice
 			case serial != "":
 				m.logger.Warnf("new emulator found: %s, state: %s", serial, state)
-				if state == "device" {
-					serialChan <- serial
-					return
-				}
+				serialChan <- QueryNewDeviceResult{Serial: serial, State: state}
+
+				//if state == "device" {
+				//	serialChan <- serial
+				//	return
+				//}
 			default:
 				m.logger.Warnf("new emulator not found")
 			}

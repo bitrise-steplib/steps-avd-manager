@@ -98,6 +98,16 @@ func (m Manager) UnlockDevice(serial string) (string, error) {
 	return m.WaitForDeviceShell(serial, "input", "keyevent", "82")
 }
 
+// KillEmulator ...
+func (m Manager) KillEmulator(serial string) error {
+	cmd := m.commandFactory.Create(m.adb(), []string{"-s", serial, "emu", "kill"}, &command.Opts{
+		Stdout: os.Stdout,
+		Stderr: os.Stderr,
+	})
+	m.logger.TDonef("$ %s", cmd.PrintableCommandArgs())
+	return cmd.Run()
+}
+
 func (m Manager) adb() string {
 	return filepath.Join(m.sdk.PlatformTools(), "adb")
 }
