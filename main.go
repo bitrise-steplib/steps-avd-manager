@@ -18,7 +18,6 @@ import (
 	"github.com/kballard/go-shellquote"
 )
 
-// config ...
 type config struct {
 	APILevel          int    `env:"api_level,required"`
 	Tag               string `env:"tag,opt[google_apis,google_apis_playstore,android-wear,android-tv,default]"`
@@ -32,10 +31,6 @@ type config struct {
 	AndroidHome    string `env:"ANDROID_HOME"`
 	AndroidSDKRoot string `env:"ANDROID_SDK_ROOT"`
 }
-
-var (
-	faultIndicators = []string{" BUG: ", "Kernel panic"}
-)
 
 func failf(msg string, args ...interface{}) {
 	log.Errorf(msg, args...)
@@ -125,8 +120,6 @@ func main() {
 		fmt.Println()
 	}
 
-	printEmulatorVersion(emulatorPath)
-
 	emulatorManager := NewEmulatorManager(androidSdk, commandv2.NewFactory(envv2.NewRepository()), logv2.NewLogger())
 
 	fmt.Println()
@@ -143,24 +136,6 @@ func main() {
 	log.Printf("- Device with serial: %s started", serial)
 
 	log.Donef("- Done")
-}
-
-func printEmulatorVersion(emulatorPath string) {
-	cmd := command.New(emulatorPath, "-version")
-
-	log.Infof("Emulator version:")
-	log.TDonef("$ %s", cmd.PrintableCommandArgs())
-
-	out, err := cmd.RunAndReturnTrimmedCombinedOutput()
-	if err != nil {
-		log.Warnf("Failed to print emulator versions: %s", err)
-	}
-	s := strings.Split(out, "\n")
-	if len(s) > 0 {
-		log.Printf(s[0])
-	} else {
-		log.Printf(out)
-	}
 }
 
 func containsAny(output string, any []string) bool {

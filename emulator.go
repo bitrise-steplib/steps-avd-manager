@@ -14,6 +14,10 @@ import (
 	asyncCmd "github.com/go-cmd/cmd"
 )
 
+var (
+	faultIndicators = []string{" BUG: ", "Kernel panic"}
+)
+
 type EmulatorManager struct {
 	sdk        sdk.AndroidSdkInterface
 	adbManager adbmanager.Manager
