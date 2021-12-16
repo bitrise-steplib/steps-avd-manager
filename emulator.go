@@ -46,8 +46,8 @@ func (m EmulatorManager) StartEmulator(name string, args []string, timeoutChan <
 		"-gpu", "swiftshader_indirect"}, args...)
 
 	if err := m.adbManager.StartServer(); err != nil {
-		m.logger.Warnf("failed to start adb server: %s", err)
-		m.logger.Warnf("restarting adb server...")
+		m.logger.TWarnf("failed to start adb server: %s", err)
+		m.logger.TWarnf("restarting adb server...")
 		if err := m.adbManager.RestartServer(); err != nil {
 			return "", fmt.Errorf("failed to restart adb server: %s", err)
 		}
@@ -65,31 +65,34 @@ func (m EmulatorManager) StartEmulator(name string, args []string, timeoutChan <
 
 	errChan := make(chan error)
 
-	serialChan := m.queryNewDevice(devices)
 	stdoutChan, stderrChan := m.broadcastStdoutAndStderr(cmd)
 	go m.handleOutput(stdoutChan, stderrChan, errChan)
 
-	serial := ""
+	serialChan := make(chan QueryNewDeviceResult)
+	time.AfterFunc(1*time.Minute, func() {
+		m.queryNewDevice(devices, serialChan)
+	})
 
+	serial := ""
 	for {
 		select {
 		case <-cmd.Start():
-			m.logger.Warnf("emulator exited unexpectedly")
+			m.logger.TWarnf("emulator exited unexpectedly")
 			return m.StartEmulator(name, args, timeoutChan)
 		case err := <-errChan:
-			m.logger.Warnf("error occurred: %s", err)
+			m.logger.TWarnf("error occurred: %s", err)
 
 			if err := cmd.Stop(); err != nil {
-				m.logger.Warnf("failed to terminate emulator: %s", err)
+				m.logger.TWarnf("failed to terminate emulator: %s", err)
 			}
 
 			if serial != "" {
 				if err := m.adbManager.KillEmulator(serial); err != nil {
-					m.logger.Warnf("failed to kill %s: %s", serial, err)
+					m.logger.TWarnf("failed to kill %s: %s", serial, err)
 				}
 			}
 
-			m.logger.Warnf("restarting emulator...")
+			m.logger.TWarnf("restarting emulator...")
 			return m.StartEmulator(name, args, timeoutChan)
 		case res := <-serialChan:
 			serial = res.Serial
@@ -111,8 +114,8 @@ type QueryNewDeviceResult struct {
 	State  string
 }
 
-func (m EmulatorManager) queryNewDevice(runningDevices map[string]string) chan QueryNewDeviceResult {
-	serialChan := make(chan QueryNewDeviceResult)
+func (m EmulatorManager) queryNewDevice(runningDevices map[string]string, serialChan chan<- QueryNewDeviceResult) {
+	const sleepTime = 5 * time.Second
 
 	go func() {
 		attempt := 0
@@ -120,47 +123,46 @@ func (m EmulatorManager) queryNewDevice(runningDevices map[string]string) chan Q
 		for {
 			attempt++
 
+			// Restart adb server as emulator does not show up in a device state quite a while ago.
 			if attempt%10 == 0 {
-				m.logger.Warnf("restarting adb server...")
+				m.logger.TWarnf("restarting adb server...")
 				if err := m.adbManager.RestartServer(); err != nil {
-					m.logger.Warnf("failed to restart adb server: %s", err)
+					m.logger.TWarnf("failed to restart adb server: %s", err)
 				}
 			}
 
 			serial, state, err := m.adbManager.NewDevice(runningDevices)
 			switch {
 			case err != nil:
-				m.logger.Warnf("failed to query new emulator: %s", err)
-				m.logger.Warnf("restart adb server and retry")
+				m.logger.TWarnf("failed to query new emulator: %s", err)
+				m.logger.TWarnf("restart adb server and retry")
 				if err := m.adbManager.RestartServer(); err != nil {
-					m.logger.Warnf("failed to restart adb server: %s", err)
+					m.logger.TWarnf("failed to restart adb server: %s", err)
 				}
 
-				attempt = 0 // avoid restarting adb server twice
+				attempt = 0
 			case serial != "":
-				m.logger.Warnf("new emulator found: %s, state: %s", serial, state)
+				m.logger.TWarnf("new emulator found: %s, state: %s", serial, state)
 				serialChan <- QueryNewDeviceResult{Serial: serial, State: state}
 			default:
-				m.logger.Warnf("new emulator not found")
+				m.logger.TWarnf("new emulator not found")
 			}
 
-			time.Sleep(2 * time.Second)
+			time.Sleep(sleepTime)
 		}
 	}()
-
-	return serialChan
 }
 
 func (m EmulatorManager) handleOutput(stdoutChan, stderrChan <-chan string, errChan chan<- error) {
 	handle := func(line string) {
 		if containsAny(line, faultIndicators) {
-			m.logger.Warnf("emulator log contains fault: %s", line)
+			m.logger.TWarnf("emulator log contains fault: %s", line)
 			errChan <- fmt.Errorf("emulator start failed: %s", line)
 			return
 		}
 
 		if strings.Contains(line, "INFO    | boot completed") {
-			m.logger.Warnf("emulator log contains boot completed")
+			m.logger.TWarnf("emulator log contains boot completed")
 		}
 	}
 
