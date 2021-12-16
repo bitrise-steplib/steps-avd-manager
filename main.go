@@ -86,18 +86,29 @@ func main() {
 	for _, phase := range []phase{
 		{
 			"Updating emulator",
+			// sdkmanager --verbose --channel=0 emulator
+			// Channels: 0 (stable), 1 (beta), 2 (dev), or 3 (canary)
 			command.New(sdkManagerPath, "--verbose", "--channel="+cfg.EmulatorChannel, "emulator").
 				SetStdin(strings.NewReader(yes)), // hitting yes in case it waits for accepting license
 		},
 
 		{
 			"Updating system-image packages",
+			// sdkmanager --verbose "system-images;android-30;google_apis_playstore;x86_64"
 			command.New(sdkManagerPath, "--verbose", pkg).
 				SetStdin(strings.NewReader(yes)), // hitting yes in case it waits for accepting license
 		},
 
 		{
 			"Creating device",
+			// avdmanager --verbose create avd
+			//	--force \
+			//	--name emulator \
+			//	--device pixel \
+			//	--package system-images;android-30;google_apis_playstore;x86_64 \
+			//	--tag google_apis_playstore \
+			//	--abi x86_64 \
+			//	--sdcard 512M
 			command.New(avdManagerPath, append([]string{
 				"--verbose", "create", "avd", "--force",
 				"--name", cfg.ID,
