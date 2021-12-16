@@ -42,8 +42,10 @@ func (m EmulatorManager) StartEmulator(name string, args []string, timeout time.
 		"-gpu", "swiftshader_indirect"}, args...)
 
 	if err := m.adbManager.StartServer(); err != nil {
+		m.logger.Warnf("failed to start adb server: %s", err)
+		m.logger.Warnf("restarting adb server...")
 		if err := m.adbManager.RestartServer(); err != nil {
-			failf("Failed to start adb server: %s", err)
+			return "", fmt.Errorf("failed to restart adb server: %s", err)
 		}
 	}
 
