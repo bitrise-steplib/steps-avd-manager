@@ -9,7 +9,6 @@ import (
 
 	"github.com/bitrise-io/go-android/adbmanager"
 	"github.com/bitrise-io/go-android/sdk"
-	androidSDK "github.com/bitrise-io/go-android/sdk"
 	"github.com/bitrise-io/go-utils/v2/command"
 	"github.com/bitrise-io/go-utils/v2/log"
 	asyncCmd "github.com/go-cmd/cmd"
@@ -21,7 +20,7 @@ type EmulatorManager struct {
 	logger     log.Logger
 }
 
-func NewEmulatorManager(sdk androidSDK.AndroidSdkInterface, commandFactory command.Factory, logger log.Logger) EmulatorManager {
+func NewEmulatorManager(sdk sdk.AndroidSdkInterface, commandFactory command.Factory, logger log.Logger) EmulatorManager {
 	return EmulatorManager{
 		sdk:        sdk,
 		adbManager: adbmanager.NewManager(sdk, commandFactory, logger),
@@ -29,8 +28,6 @@ func NewEmulatorManager(sdk androidSDK.AndroidSdkInterface, commandFactory comma
 	}
 }
 
-// TODO: Your emulator is out of date, please update by launching Android Studio:
-// https://app.bitrise.io/build/0b902ceb-c3fd-4c24-abf0-0768226433fb#?tab=log
 func (m EmulatorManager) StartEmulator(name string, args []string, timeout time.Duration) (string, error) {
 	args = append([]string{
 		"@" + name,
@@ -95,7 +92,17 @@ func (m EmulatorManager) checkDeviceSerial(runningDevices map[string]string) cha
 	serialChan := make(chan string)
 
 	go func() {
+		attempt := 0
+
 		for {
+			attempt++
+
+			if attempt%10 == 0 {
+				if err := m.adbManager.RestartServer(); err != nil {
+					m.logger.Warnf("failed to restart adb server: %s", err)
+				}
+			}
+
 			serial, state, err := m.adbManager.NewDevice(runningDevices)
 			switch {
 			case err != nil:
@@ -104,6 +111,8 @@ func (m EmulatorManager) checkDeviceSerial(runningDevices map[string]string) cha
 				if err := m.adbManager.RestartServer(); err != nil {
 					m.logger.Warnf("failed to restart adb server: %s", err)
 				}
+
+				attempt = 0 // avoid restarting adb server twice
 			case serial != "":
 				m.logger.Warnf("new emulator found: %s, state: %s", serial, state)
 				if state == "device" {
