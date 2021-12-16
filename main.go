@@ -20,8 +20,6 @@ import (
 
 // config ...
 type config struct {
-	AndroidHome       string `env:"ANDROID_HOME"`
-	AndroidSDKRoot    string `env:"ANDROID_SDK_ROOT"`
 	APILevel          int    `env:"api_level,required"`
 	Tag               string `env:"tag,opt[google_apis,google_apis_playstore,android-wear,android-tv,default]"`
 	DeviceProfile     string `env:"profile,required"`
@@ -30,6 +28,9 @@ type config struct {
 	ID                string `env:"emulator_id,required"`
 	Abi               string `env:"abi,opt[x86,armeabi-v7a,arm64-v8a,x86_64]"`
 	EmulatorChannel   string `env:"emulator_channel,opt[0,1,2,3]"`
+
+	AndroidHome    string `env:"ANDROID_HOME"`
+	AndroidSDKRoot string `env:"ANDROID_SDK_ROOT"`
 }
 
 var (
