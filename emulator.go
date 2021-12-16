@@ -98,6 +98,7 @@ func (m EmulatorManager) checkDeviceSerial(runningDevices map[string]string) cha
 			attempt++
 
 			if attempt%10 == 0 {
+				m.logger.Warnf("restart adb server...")
 				if err := m.adbManager.RestartServer(); err != nil {
 					m.logger.Warnf("failed to restart adb server: %s", err)
 				}
