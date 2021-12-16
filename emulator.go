@@ -140,11 +140,6 @@ func (m EmulatorManager) queryNewDevice(runningDevices map[string]string) chan Q
 			case serial != "":
 				m.logger.Warnf("new emulator found: %s, state: %s", serial, state)
 				serialChan <- QueryNewDeviceResult{Serial: serial, State: state}
-
-				//if state == "device" {
-				//	serialChan <- serial
-				//	return
-				//}
 			default:
 				m.logger.Warnf("new emulator not found")
 			}
