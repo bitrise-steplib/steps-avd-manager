@@ -74,14 +74,13 @@ func (m EmulatorManager) StartEmulator(name string, args []string, timeout time.
 	case err := <-errChan:
 		m.logger.Warnf("error occurred: %", err)
 		if err := cmd.Stop(); err != nil {
-			m.logger.Warnf("Failed to terminate emulator command: %s", err)
+			m.logger.Warnf("failed to terminate emulator: %s", err)
 		}
 		m.logger.Warnf("restarting emulator...")
 		return m.StartEmulator(name, args, timeout)
 	case serial := <-serialChan:
 		return serial, nil
 	case <-timeoutChan:
-		m.logger.Warnf("timeout")
 		return "", fmt.Errorf("timeout")
 	}
 }
@@ -100,7 +99,7 @@ func (m EmulatorManager) checkDeviceSerial(runningDevices map[string]string) cha
 			attempt++
 
 			if attempt%10 == 0 {
-				m.logger.Warnf("restart adb server...")
+				m.logger.Warnf("restarting adb server...")
 				if err := m.adbManager.RestartServer(); err != nil {
 					m.logger.Warnf("failed to restart adb server: %s", err)
 				}
@@ -109,8 +108,8 @@ func (m EmulatorManager) checkDeviceSerial(runningDevices map[string]string) cha
 			serial, state, err := m.adbManager.NewDevice(runningDevices)
 			switch {
 			case err != nil:
-				m.logger.Warnf("failed to query serial: %s", err)
-				m.logger.Warnf("restart adb server and retry...")
+				m.logger.Warnf("failed to query new emulator: %s", err)
+				m.logger.Warnf("restart adb server and retry")
 				if err := m.adbManager.RestartServer(); err != nil {
 					m.logger.Warnf("failed to restart adb server: %s", err)
 				}
@@ -123,7 +122,7 @@ func (m EmulatorManager) checkDeviceSerial(runningDevices map[string]string) cha
 					return
 				}
 			default:
-				m.logger.Warnf("serial not found")
+				m.logger.Warnf("new emulator not found")
 			}
 
 			time.Sleep(2 * time.Second)
@@ -136,13 +135,13 @@ func (m EmulatorManager) checkDeviceSerial(runningDevices map[string]string) cha
 func (m EmulatorManager) handleOutput(stdoutChan, stderrChan <-chan string, errChan chan<- error) {
 	handle := func(line string) {
 		if containsAny(line, faultIndicators) {
-			m.logger.Warnf("Emulator log contains fault: %s", line)
+			m.logger.Warnf("emulator log contains fault: %s", line)
 			errChan <- fmt.Errorf("emulator start failed: %s", line)
 			return
 		}
 
 		if strings.Contains(line, "INFO    | boot completed") {
-			m.logger.Warnf("It seems boot completed")
+			m.logger.Warnf("emulator log contains boot completed")
 		}
 	}
 
@@ -179,8 +178,6 @@ func (m EmulatorManager) broadcastStdoutAndStderr(cmd *asyncCmd.Cmd) (stdoutChan
 				stderrChan <- line
 			}
 		}
-
-		m.logger.Warnf("stdout and stderr is closed")
 	}()
 	return
 }
