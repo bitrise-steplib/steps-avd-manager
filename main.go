@@ -175,7 +175,7 @@ func main() {
 
 		{
 			"Updating system-image packages",
-			command.New(sdkManagerPath, "--verbose", pkg).
+			command.New(sdkManagerPath, "--verbose", "--channel="+cfg.EmulatorChannel, pkg).
 				SetStdin(strings.NewReader(yes)), // hitting yes in case it waits for accepting license
 		},
 
