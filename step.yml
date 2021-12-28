@@ -62,6 +62,7 @@ inputs:
     value_options:
     - google_apis
     - google_apis_playstore
+    - aosp_atd
     - android-wear
     - android-tv
     - default
