@@ -23,7 +23,7 @@ type config struct {
 	AndroidHome       string `env:"ANDROID_HOME"`
 	AndroidSDKRoot    string `env:"ANDROID_SDK_ROOT"`
 	APILevel          int    `env:"api_level,required"`
-	Tag               string `env:"tag,opt[google_apis,google_apis_playstore,aosp-atd,android-wear,android-tv,default]"`
+	Tag               string `env:"tag,opt[google_apis,google_apis_playstore,aosp_atd,android-wear,android-tv,default]"`
 	DeviceProfile     string `env:"profile,required"`
 	CreateCommandArgs string `env:"create_command_flags"`
 	StartCommandArgs  string `env:"start_command_flags"`
