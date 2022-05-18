@@ -43,7 +43,8 @@ inputs:
 - profile: pixel
   opts:
     title: Device Profile
-    description: Set the device profile to create the new virtual device. This profile contains all the parameters of the devices. To see the complete list of available profiles use the `avdmanager list device` command locally and use the `id` value for this input.
+    summary: Set the device profile to create the new AVD.
+    description: This profile contains all the parameters of the devices. To see the complete list of available profiles use the `avdmanager list device` command locally and use the `id` value for this input.
     is_required: true
 - api_level: 26
   opts:
