@@ -15,7 +15,7 @@ Run instrumented and UI tests on a virtual Android device. Once some basic input
 3. Set the **Android API Level**. The new virtual device will run with the specified Android version.
 4. Select an **OS Tag** to have the required toolset on the new virtual device.
 
-Some system images are pre-installed on the virtual machines. In this case the step won't have to spend time downloading the requested image. To check the list of pre-installed images for each stack, visit the [system reports](https://github.com/bitrise-io/bitrise.io/tree/master/system_reports)
+Some system images are pre-installed on the virtual machines. In this case the step won't have to spend time downloading the requested image. To check the list of pre-installed images for each stack, visit the [system reports](https://github.com/bitrise-io/bitrise.io/tree/master/system_reports).
 
 ### Troubleshooting
 The emulator needs some time to boot up. The earlier you place the Step in your Workflow, the more tasks, such as cloning or caching, you can complete in your Workflow before the emulator starts working.
@@ -44,7 +44,7 @@ You can also run this step directly with [Bitrise CLI](https://github.com/bitris
 
 | Key | Description | Flags | Default |
 | --- | --- | --- | --- |
-| `profile` | Set the device profile to create the new virtual device. This profile contains all the parameters of the devices. To see the complete list of available profiles use the `avdmanager list device` command locally and use the `id` value for this input. | required | `pixel` |
+| `profile` | The profile contains parameters of the device, such as screen size and resolution.  To see the complete list of available profiles use the `avdmanager list device` command locally and use the `id` value for this input.  | required | `pixel` |
 | `api_level` | The device will run with the specified version of android. | required | `26` |
 | `tag` | Select OS tag to have the required toolset on the device. | required | `google_apis` |
 | `abi` | Select which ABI to use running the emulator. Availability depends on API level. Please use `sdkmanager --list` command to see the available ABIs. | required | `x86` |
