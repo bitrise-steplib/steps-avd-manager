@@ -38,6 +38,7 @@ var (
 
 const (
 	maxAttempts = 5
+	bootTimeout = time.Duration(10) * time.Minute
 )
 
 func runningDeviceInfos(androidHome string) (map[string]string, error) {
@@ -229,32 +230,45 @@ func startEmulator(emulatorPath string, args []string, androidHome string, runni
 
 	log.Infof("Starting device")
 	log.Donef("$ %s", deviceStartCmd.PrintableCommandArgs())
-	// start the emlator as a detached process
-	emulatorWaitCh := make(chan error, 1)
+
+	// The emulator command won't exit after the boot completes, so we start the command and not wait for its result.
+	// Instead, we have a loop with 3 channels:
+	// 1. One that waits for the emulator process to exit
+	// 2. A boot timeout timer
+	// 3. A ticker that periodically checks if the device has become online
 	if err := deviceStartCmd.GetCmd().Start(); err != nil {
 		failf("Failed to run device start command: %v", err)
 	}
+
+	emulatorWaitCh := make(chan error, 1)
 	go func() {
 		emulatorWaitCh <- deviceStartCmd.GetCmd().Wait()
 	}()
 
-	var serial string
-	const bootWaitTime = time.Duration(300)
-	timeout := time.NewTimer(bootWaitTime * time.Second)
+	timeoutTimer := time.NewTimer(bootTimeout)
+
 	deviceCheckTicker := time.NewTicker(5 * time.Second)
+
+	var serial string
 	retry := false
 waitLoop:
 	for {
 		select {
 		case err := <-emulatorWaitCh:
-			log.Warnf("Emulator log: %s", output)
+			log.Warnf("Emulator process exited early")
 			if err != nil {
-				failf("Emulator exited unexpectedly: %v", err)
+				log.Errorf("Emulator exit reason: %v", err)
+			} else {
+				log.Warnf("A possible cause can be the emulator process having received a KILL signal.")
 			}
-			failf("Emulator exited early, without error. A possible cause can be the emulator process having received a KILL signal.")
-		case <-timeout.C:
-			log.Warnf("Emulator log: %s", output)
-			failf("Failed to boot emulator device within %d seconds.", bootWaitTime)
+			log.Printf("Emulator log: %s", output)
+			failf("Emulator exited early, see logs above.")
+		case <-timeoutTimer.C:
+			// Include error before and after printing the emulator log because it's so long
+			errorMsg := fmt.Sprintf("Failed to boot emulator device within %d seconds.", bootTimeout/time.Second)
+			log.Errorf(errorMsg)
+			log.Printf("Emulator log: %s", output)
+			failf(errorMsg)
 		case <-deviceCheckTicker.C:
 			var err error
 			serial, err = queryNewDeviceSerial(androidHome, runningDevices)
@@ -279,7 +293,7 @@ waitLoop:
 			}
 		}
 	}
-	timeout.Stop()
+	timeoutTimer.Stop()
 	deviceCheckTicker.Stop()
 	if retry {
 		return startEmulator(emulatorPath, args, androidHome, runningDevices, attempt+1)
