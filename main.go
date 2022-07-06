@@ -37,14 +37,16 @@ var (
 )
 
 const (
-	maxAttempts = 5
-	bootTimeout = time.Duration(10) * time.Minute
+	bootTimeout         = time.Duration(10) * time.Minute
+	deviceCheckInterval = time.Duration(5) * time.Second
+	maxBootAttempts     = 5
 )
 
 func runningDeviceInfos(androidHome string) (map[string]string, error) {
 	cmd := command.New(filepath.Join(androidHome, "platform-tools", "adb"), "devices")
 	out, err := cmd.RunAndReturnTrimmedCombinedOutput()
 	if err != nil {
+		log.Printf(err.Error())
 		return map[string]string{}, fmt.Errorf("command failed, error: %s", err)
 	}
 
@@ -247,7 +249,7 @@ func startEmulator(emulatorPath string, args []string, androidHome string, runni
 
 	timeoutTimer := time.NewTimer(bootTimeout)
 
-	deviceCheckTicker := time.NewTicker(5 * time.Second)
+	deviceCheckTicker := time.NewTicker(deviceCheckInterval)
 
 	var serial string
 	retry := false
@@ -283,12 +285,12 @@ waitLoop:
 				if err := deviceStartCmd.GetCmd().Process.Kill(); err != nil {
 					failf("Couldn't finish emulator process: %v", err)
 				}
-				if attempt < maxAttempts {
+				if attempt < maxBootAttempts {
 					log.Warnf("Trying to start emulator process again...")
 					retry = true
 					break waitLoop
 				} else {
-					failf("Failed to boot device due to faults after %d tries", maxAttempts)
+					failf("Failed to boot device due to faults after %d tries", maxBootAttempts)
 				}
 			}
 		}
