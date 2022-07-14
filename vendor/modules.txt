@@ -13,8 +13,14 @@ github.com/bitrise-io/go-utils/log
 github.com/bitrise-io/go-utils/parseutil
 github.com/bitrise-io/go-utils/pathutil
 github.com/bitrise-io/go-utils/pointers
+# github.com/bitrise-io/go-utils/v2 v2.0.0-alpha.7.0.20220714185021-dfb5eaedc3c2
+## explicit
+github.com/bitrise-io/go-utils/v2/system
 # github.com/hashicorp/go-version v1.3.0
 github.com/hashicorp/go-version
 # github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 ## explicit
 github.com/kballard/go-shellquote
+# golang.org/x/sys v0.0.0-20220712014510-0a85c31ab51e
+golang.org/x/sys/internal/unsafeheader
+golang.org/x/sys/unix
