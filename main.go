@@ -87,7 +87,7 @@ func failf(msg string, args ...interface{}) {
 	if err != nil {
 		log.Errorf("Failed to check CPU: %s", err)
 	} else if cpuIsARM {
-		log.Warnf("This Step is not yet supported on Apple Silicon (M1) machines. If you're unable to find a solution to this error, try running this Workflow on an Intel-based machine type.")
+		log.Warnf("This Step is not yet supported on Apple Silicon (M1) machines. If you cannot find a solution to this error, try running this Workflow on an Intel-based machine type.")
 	}
 
 	os.Exit(1)
