@@ -15,6 +15,7 @@ import (
 	"github.com/bitrise-io/go-steputils/tools"
 	"github.com/bitrise-io/go-utils/command"
 	"github.com/bitrise-io/go-utils/log"
+	"github.com/bitrise-io/go-utils/v2/system"
 	"github.com/kballard/go-shellquote"
 )
 
@@ -81,6 +82,14 @@ func runningDeviceInfos(androidHome string) (map[string]string, error) {
 
 func failf(msg string, args ...interface{}) {
 	log.Errorf(msg, args...)
+
+	cpuIsARM, err := system.CPU.IsARM()
+	if err != nil {
+		log.Errorf("Failed to check CPU: %s", err)
+	} else if cpuIsARM {
+		log.Warnf("This Step is not yet supported on Apple Silicon (M1) machines. If you cannot find a solution to this error, try running this Workflow on an Intel-based machine type.")
+	}
+
 	os.Exit(1)
 }
 

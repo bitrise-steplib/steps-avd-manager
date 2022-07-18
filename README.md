@@ -9,6 +9,8 @@ Create and boot an Android emulator used for device testing
 
 Run instrumented and UI tests on a virtual Android device. Once some basic inputs are set, the Step checks the requirements, downloads the selected system image before creating and starting the emulator.
 
+**Warning:** This Step is not yet supported on Apple Silicon (M1) machines. If you cannot find a solution to this error, try running this Workflow on an Intel-based machine type.
+
 ### Configuring the Step
 1. Add the **AVD Manager** Step to your Workflow as one of the first Steps in your Workflow.
 2. Set the **Device Profile** to create a new Android virtual device. To see the complete list of available profiles, use the `avdmanager list device` command and use the `id` value for this input.
