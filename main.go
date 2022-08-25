@@ -213,8 +213,12 @@ func main() {
 		log.Infof(phase.name)
 		log.Donef("$ %s", phase.command.PrintableCommandArgs())
 
-		if out, err := phase.command.RunAndReturnTrimmedCombinedOutput(); err != nil {
-			failf("Failed to run phase: %s, output: %s", err, out)
+		// if out, err := phase.command.RunAndReturnTrimmedCombinedOutput(); err != nil {
+		// 	failf("Failed to run phase: %s, output: %s", err, out)
+		// }
+
+		if err := phase.command.Run(); err != nil {
+			failf("Failed to run phase: %s, err")
 		}
 
 		fmt.Println()
