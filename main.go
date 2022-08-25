@@ -229,7 +229,7 @@ func main() {
 		"-no-snapshot",
 		"-wipe-data",
 	}
-	if !sliceutil.IsStringInSlice(startCustomFlags, "-gpu") {
+	if !sliceutil.IsStringInSlice("-gpu", startCustomFlags) {
 		args = append(args, []string{"-gpu", "auto"}...)
 	}
 	if cfg.IsHeadlessMode {
