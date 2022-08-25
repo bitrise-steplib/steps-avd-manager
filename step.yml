@@ -107,6 +107,14 @@ inputs:
     summary: Flags used when running the command to start the emulator.
     description: Flags used when running the command to start the emulator.
     is_required: false
+- update: "yes"
+  opts:
+    category: Debug
+    title: Update emulator
+    is_required: true
+    value_options:
+    - "yes"
+    - "no"
 - emulator_channel: "0"
   opts:
     category: Debug
@@ -120,6 +128,14 @@ inputs:
     - "1"
     - "2"
     - "3"
+- headless_mode: "yes"
+  opts:
+    category: Debug
+    title: Headless mode
+    is_required: true
+    value_options:
+    - "yes"
+    - "no"
 
 outputs:
 - BITRISE_EMULATOR_SERIAL:
