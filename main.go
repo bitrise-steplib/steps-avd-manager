@@ -218,7 +218,7 @@ func main() {
 		// }
 
 		if err := phase.command.Run(); err != nil {
-			failf("Failed to run phase: %s, err")
+			failf("Failed to run phase: %s", err)
 		}
 
 		fmt.Println()
