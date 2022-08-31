@@ -53,7 +53,8 @@ You can also run this step directly with [Bitrise CLI](https://github.com/bitris
 | `emulator_id` | Set the device's ID. (This will be the name under $HOME/.android/avd/) | required | `emulator` |
 | `create_command_flags` | Flags used when running the command to create the emulator. |  | `--sdcard 512M` |
 | `start_command_flags` | Flags used when running the command to start the emulator. |  | `-camera-back none -camera-front none` |
-| `emulator_channel` | Select which channel to use with `sdkmanager` to fetch `emulator` package. Available channels are 0 (Stable), 1 (Beta), 2 (Dev), and 3 (Canary). | required | `0` |
+| `emulator_channel` | Select which channel to use with `sdkmanager` to fetch *emulator* package. Available options are no update, or channels 0 (Stable), 1 (Beta), 2 (Dev), and 3 (Canary).  - `no update`: The *emulator* preinstalled on the Stack will be used. *system-image* will be updated to the latest Stable version.  To update *emulator* and *system image* to the latest available in a given channel: - `0`: Stable channel - `1`: Beta channel - `2`: Dev channel - `3`: Canary channel | required | `no update` |
+| `headless_mode` | In headless mode the emulator is not launched in the foreground.  If this input is set, the emulator will not be visible but tests (even the screenshots) will run just like if the emulator ran in the foreground. | required | `yes` |
 </details>
 
 <details>

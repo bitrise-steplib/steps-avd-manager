@@ -115,7 +115,7 @@ inputs:
     description: |-
       Select which channel to use with `sdkmanager` to fetch *emulator* package. Available options are no update, or channels 0 (Stable), 1 (Beta), 2 (Dev), and 3 (Canary).
 
-      - `no update`: The *emulator* and *system image* preinstalled on the Stack will be used. No new versions will be installed by the Step.
+      - `no update`: The *emulator* preinstalled on the Stack will be used. *system-image* will be updated to the latest Stable version.
 
       To update *emulator* and *system image* to the latest available in a given channel:
       - `0`: Stable channel
