@@ -181,33 +181,39 @@ func main() {
 		failf("Failed to parse start command args, error: %s", err)
 	}
 
-	var phases []phase
+	var (
+		systemImageChannel = "0"
+		phases             []phase
+	)
 	if cfg.EmulatorChannel != noUpdate {
+		systemImageChannel = cfg.EmulatorChannel
 		phases = []phase{
 			{
 				"Updating emulator",
 				command.New(sdkManagerPath, "--verbose", "--channel="+cfg.EmulatorChannel, "emulator").
 					SetStdin(strings.NewReader(yes)), // hitting yes in case it waits for accepting license
 			},
-			{
-				"Updating system-image packages",
-				command.New(sdkManagerPath, "--verbose", "--channel="+cfg.EmulatorChannel, pkg).
-					SetStdin(strings.NewReader(yes)), // hitting yes in case it waits for accepting license
-			},
 		}
 	}
 
-	phases = append(phases, phase{
-		"Creating device",
-		command.New(avdManagerPath, append([]string{
-			"--verbose", "create", "avd", "--force",
-			"--name", cfg.ID,
-			"--device", cfg.DeviceProfile,
-			"--package", pkg,
-			"--tag", cfg.Tag,
-			"--abi", cfg.Abi}, createCustomFlags...)...).
-			SetStdin(strings.NewReader(no)), // hitting no in case it asks for creating hw profile
-	})
+	phases = append(phases, []phase{
+		{
+			"Updating system-image packages",
+			command.New(sdkManagerPath, "--verbose", "--channel="+systemImageChannel, pkg).
+				SetStdin(strings.NewReader(yes)), // hitting yes in case it waits for accepting license
+		},
+		{
+			"Creating device",
+			command.New(avdManagerPath, append([]string{
+				"--verbose", "create", "avd", "--force",
+				"--name", cfg.ID,
+				"--device", cfg.DeviceProfile,
+				"--package", pkg,
+				"--tag", cfg.Tag,
+				"--abi", cfg.Abi}, createCustomFlags...)...).
+				SetStdin(strings.NewReader(no)), // hitting no in case it asks for creating hw profile
+		},
+	}...)
 
 	for _, phase := range phases {
 		log.Infof(phase.name)
