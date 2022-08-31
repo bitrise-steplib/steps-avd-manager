@@ -107,7 +107,7 @@ inputs:
     summary: Flags used when running the command to start the emulator.
     description: Flags used when running the command to start the emulator.
     is_required: false
-- emulator_channel: "no update"
+- emulator_channel: no update
   opts:
     category: Debug
     title: Emulator channel
@@ -116,7 +116,7 @@ inputs:
       Select which channel to use with `sdkmanager` to fetch *emulator* package. Available options are no update, or channels 0 (Stable), 1 (Beta), 2 (Dev), and 3 (Canary).
 
       - `no update`: The *emulator* and *system image* preinstalled on the Stack will be used. No new versions will be installed by the Step.
-      
+
       To update *emulator* and *system image* to the latest available in a given channel:
       - `0`: Stable channel
       - `1`: Beta channel
@@ -125,7 +125,7 @@ inputs:
     is_expand: true
     is_required: true
     value_options:
-    - "no update"
+    - no update
     - "0"
     - "1"
     - "2"
