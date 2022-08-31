@@ -107,23 +107,25 @@ inputs:
     summary: Flags used when running the command to start the emulator.
     description: Flags used when running the command to start the emulator.
     is_required: false
-- update: "yes"
-  opts:
-    category: Debug
-    title: Update emulator
-    is_required: true
-    value_options:
-    - "yes"
-    - "no"
-- emulator_channel: "0"
+- emulator_channel: "no update"
   opts:
     category: Debug
     title: Emulator channel
-    summary: Select which channel to use with `sdkmanager` to fetch `emulator` package. Available channels are 0 (Stable), 1 (Beta), 2 (Dev), and 3 (Canary).
-    description: Select which channel to use with `sdkmanager` to fetch `emulator` package. Available channels are 0 (Stable), 1 (Beta), 2 (Dev), and 3 (Canary).
+    summary: Select which channel to use with `sdkmanager` to fetch *emulator* package. Available options are no update, or channels 0 (Stable), 1 (Beta), 2 (Dev), and 3 (Canary).
+    description: |-
+      Select which channel to use with `sdkmanager` to fetch *emulator* package. Available options are no update, or channels 0 (Stable), 1 (Beta), 2 (Dev), and 3 (Canary).
+
+      - `no update`: The *emulator* and *system image* preinstalled on the Stack will be used. No new versions will be installed by the Step.
+      
+      To update *emulator* and *system image* to the latest available in a given channel:
+      - `0`: Stable channel
+      - `1`: Beta channel
+      - `2`: Dev channel
+      - `3`: Canary channel
     is_expand: true
     is_required: true
     value_options:
+    - "no update"
     - "0"
     - "1"
     - "2"
@@ -131,7 +133,12 @@ inputs:
 - headless_mode: "yes"
   opts:
     category: Debug
-    title: Headless mode
+    title: Run the emulator in headless mode
+    summary: In headless mode the emulator is not launched in the foreground.
+    description: |-
+      In headless mode the emulator is not launched in the foreground.
+
+      If this input is set, the emulator will not be visible but tests (even the screenshots) will run just like if the emulator ran in the foreground.
     is_required: true
     value_options:
     - "yes"

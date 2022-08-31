@@ -22,18 +22,17 @@ import (
 
 // config ...
 type config struct {
-	AndroidHome          string `env:"ANDROID_HOME"`
-	AndroidSDKRoot       string `env:"ANDROID_SDK_ROOT"`
-	APILevel             int    `env:"api_level,required"`
-	Tag                  string `env:"tag,opt[google_apis,google_apis_playstore,aosp_atd,google_atd,android-wear,android-tv,default]"`
-	DeviceProfile        string `env:"profile,required"`
-	CreateCommandArgs    string `env:"create_command_flags"`
-	StartCommandArgs     string `env:"start_command_flags"`
-	ID                   string `env:"emulator_id,required"`
-	Abi                  string `env:"abi,opt[x86,armeabi-v7a,arm64-v8a,x86_64]"`
-	ShouldUpdateEmulator bool   `env:"update,opt[yes,no]"`
-	EmulatorChannel      string `env:"emulator_channel,opt[0,1,2,3]"`
-	IsHeadlessMode       bool   `env:"headless_mode,opt[yes,no]"`
+	AndroidHome       string `env:"ANDROID_HOME"`
+	AndroidSDKRoot    string `env:"ANDROID_SDK_ROOT"`
+	APILevel          int    `env:"api_level,required"`
+	Tag               string `env:"tag,opt[google_apis,google_apis_playstore,aosp_atd,google_atd,android-wear,android-tv,default]"`
+	DeviceProfile     string `env:"profile,required"`
+	CreateCommandArgs string `env:"create_command_flags"`
+	StartCommandArgs  string `env:"start_command_flags"`
+	ID                string `env:"emulator_id,required"`
+	Abi               string `env:"abi,opt[x86,armeabi-v7a,arm64-v8a,x86_64]"`
+	EmulatorChannel   string `env:"emulator_channel,opt[no update,0,1,2,3]"`
+	IsHeadlessMode    bool   `env:"headless_mode,opt[yes,no]"`
 }
 
 var (
@@ -44,6 +43,7 @@ const (
 	bootTimeout         = time.Duration(10) * time.Minute
 	deviceCheckInterval = time.Duration(5) * time.Second
 	maxBootAttempts     = 5
+	noUpdate            = "no update"
 )
 
 func runningDeviceInfos(androidHome string) (map[string]string, error) {
@@ -182,7 +182,7 @@ func main() {
 	}
 
 	var phases []phase
-	if cfg.ShouldUpdateEmulator {
+	if cfg.EmulatorChannel != noUpdate {
 		phases = []phase{
 			{
 				"Updating emulator",
@@ -213,12 +213,8 @@ func main() {
 		log.Infof(phase.name)
 		log.Donef("$ %s", phase.command.PrintableCommandArgs())
 
-		// if out, err := phase.command.RunAndReturnTrimmedCombinedOutput(); err != nil {
-		// 	failf("Failed to run phase: %s, output: %s", err, out)
-		// }
-
-		if err := phase.command.Run(); err != nil {
-			failf("Failed to run phase: %s", err)
+		if out, err := phase.command.RunAndReturnTrimmedCombinedOutput(); err != nil {
+			failf("Failed to run phase: %s, output: %s", err, out)
 		}
 
 		fmt.Println()

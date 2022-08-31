@@ -59,6 +59,8 @@ workflows:
         - content: |
             #!/bin/bash
             set -ex
+
+            echo "BITRISE_EMULATOR_SERIAL: $BITRISE_EMULATOR_SERIAL"
             if [ "$BITRISE_EMULATOR_SERIAL" = "emulator-5554" ]
             then
               exit 0
@@ -78,8 +80,9 @@ workflows:
             #!/bin/bash
             set -euxo pipefail
             sleep 15
-            $ANDROID_HOME/platform-tools/adb shell "screencap -p /sdcard/screen.png"
-            $ANDROID_HOME/platform-tools/adb pull "/sdcard/screen.png" "./screen_$EMU_VER.png"
+            cd $BITRISE_DEPLOY_DIR
+            $ANDROID_HOME/platform-tools/adb -s $BITRISE_EMULATOR_SERIAL shell "screencap -p /sdcard/screen.png"
+            $ANDROID_HOME/platform-tools/adb -s $BITRISE_EMULATOR_SERIAL pull "/sdcard/screen.png" "./screen_$EMU_VER.png"
 
   _kill-emulator:
     steps:
