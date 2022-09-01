@@ -15,6 +15,7 @@ import (
 	"github.com/bitrise-io/go-steputils/tools"
 	"github.com/bitrise-io/go-utils/command"
 	"github.com/bitrise-io/go-utils/log"
+	"github.com/bitrise-io/go-utils/sliceutil"
 	"github.com/bitrise-io/go-utils/v2/system"
 	"github.com/kballard/go-shellquote"
 )
@@ -30,7 +31,8 @@ type config struct {
 	StartCommandArgs  string `env:"start_command_flags"`
 	ID                string `env:"emulator_id,required"`
 	Abi               string `env:"abi,opt[x86,armeabi-v7a,arm64-v8a,x86_64]"`
-	EmulatorChannel   string `env:"emulator_channel,opt[0,1,2,3]"`
+	EmulatorChannel   string `env:"emulator_channel,opt[no update,0,1,2,3]"`
+	IsHeadlessMode    bool   `env:"headless_mode,opt[yes,no]"`
 }
 
 var (
@@ -41,6 +43,7 @@ const (
 	bootTimeout         = time.Duration(10) * time.Minute
 	deviceCheckInterval = time.Duration(5) * time.Second
 	maxBootAttempts     = 5
+	noUpdate            = "no update"
 )
 
 func runningDeviceInfos(androidHome string) (map[string]string, error) {
@@ -178,19 +181,27 @@ func main() {
 		failf("Failed to parse start command args, error: %s", err)
 	}
 
-	for _, phase := range []phase{
-		{
-			"Updating emulator",
-			command.New(sdkManagerPath, "--verbose", "--channel="+cfg.EmulatorChannel, "emulator").
-				SetStdin(strings.NewReader(yes)), // hitting yes in case it waits for accepting license
-		},
+	var (
+		systemImageChannel = "0"
+		phases             []phase
+	)
+	if cfg.EmulatorChannel != noUpdate {
+		systemImageChannel = cfg.EmulatorChannel
+		phases = []phase{
+			{
+				"Updating emulator",
+				command.New(sdkManagerPath, "--verbose", "--channel="+cfg.EmulatorChannel, "emulator").
+					SetStdin(strings.NewReader(yes)), // hitting yes in case it waits for accepting license
+			},
+		}
+	}
 
+	phases = append(phases, []phase{
 		{
 			"Updating system-image packages",
-			command.New(sdkManagerPath, "--verbose", "--channel="+cfg.EmulatorChannel, pkg).
+			command.New(sdkManagerPath, "--verbose", "--channel="+systemImageChannel, pkg).
 				SetStdin(strings.NewReader(yes)), // hitting yes in case it waits for accepting license
 		},
-
 		{
 			"Creating device",
 			command.New(avdManagerPath, append([]string{
@@ -202,7 +213,9 @@ func main() {
 				"--abi", cfg.Abi}, createCustomFlags...)...).
 				SetStdin(strings.NewReader(no)), // hitting no in case it asks for creating hw profile
 		},
-	} {
+	}...)
+
+	for _, phase := range phases {
 		log.Infof(phase.name)
 		log.Donef("$ %s", phase.command.PrintableCommandArgs())
 
@@ -213,17 +226,22 @@ func main() {
 		fmt.Println()
 	}
 
-	args := append([]string{
+	args := []string{
 		"@" + cfg.ID,
 		"-verbose",
 		"-show-kernel",
 		"-no-audio",
-		"-no-window",
-		"-no-boot-anim",
 		"-netdelay", "none",
 		"-no-snapshot",
 		"-wipe-data",
-		"-gpu", "auto"}, startCustomFlags...)
+	}
+	if !sliceutil.IsStringInSlice("-gpu", startCustomFlags) {
+		args = append(args, []string{"-gpu", "auto"}...)
+	}
+	if cfg.IsHeadlessMode {
+		args = append(args, []string{"-no-window", "-no-boot-anim"}...)
+	}
+	args = append(args, startCustomFlags...)
 
 	serial := startEmulator(emulatorPath, args, androidHome, runningDevices, 1)
 
