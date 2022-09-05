@@ -117,7 +117,8 @@ workflows:
             if [[ "$OSTYPE" == "darwin"* ]]; then
               brew install tesseract
             elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
-              sudo apt install tesseract-ocr libtesseract-dev tesseract-ocr-eng
+              sudo apt-get update
+              sudo apt-get install tesseract-ocr -y
             fi
 
             OUT=./_tmp/out
