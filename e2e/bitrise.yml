@@ -7,45 +7,54 @@ app:
   - TEST_APP_BRANCH: BE-231-screenshot
 
 workflows:
-  test_emulator_start_23:
-    envs:
-    - EMU_VER: 23
-    - PROFILE: pixel
-    after_run:
-    - _start-emulator
-    - _take_screenshot
-    - _kill-emulator
+  # test_emulator_start_23:
+  #   envs:
+  #   - EMU_VER: 23
+  #   - PROFILE: pixel
+  #   after_run:
+  #   - _start-emulator
+  #   - _take_screenshot
+  #   - _kill-emulator
 
-  test_emulator_start_26:
-    envs:
-    - EMU_VER: 26
-    - PROFILE: pixel
-    after_run:
-    - _start-emulator
-    - _take_screenshot
-    - _kill-emulator
+  # test_emulator_start_26:
+  #   envs:
+  #   - EMU_VER: 26
+  #   - PROFILE: pixel
+  #   after_run:
+  #   - _start-emulator
+  #   - _take_screenshot
+  #   - _kill-emulator
 
-  test_emulator_start_28:
-    envs:
-    - EMU_VER: 28
-    - PROFILE: pixel
-    after_run:
-    - _start-emulator
-    - _take_screenshot
-    - _kill-emulator
+  # test_emulator_start_28:
+  #   envs:
+  #   - EMU_VER: 28
+  #   - PROFILE: pixel
+  #   after_run:
+  #   - _start-emulator
+  #   - _take_screenshot
+  #   - _kill-emulator
 
-  test_emulator_start_29:
-    envs:
-    - EMU_VER: 29
-    - PROFILE: pixel
-    after_run:
-    - _start-emulator
-    - _take_screenshot
-    - _kill-emulator
+  # test_emulator_start_29:
+  #   envs:
+  #   - EMU_VER: 29
+  #   - PROFILE: pixel
+  #   after_run:
+  #   - _start-emulator
+  #   - _take_screenshot
+  #   - _kill-emulator
 
-  test_emulator_start_30:
+  # test_emulator_start_30:
+  #   envs:
+  #   - EMU_VER: 30
+  #   - PROFILE: pixel_2
+  #   after_run:
+  #   - _start-emulator
+  #   - _take_screenshot
+  #   - _kill-emulator
+
+  test_emulator_start_32:
     envs:
-    - EMU_VER: 30
+    - EMU_VER: 32
     - PROFILE: pixel_2
     after_run:
     - _start-emulator
@@ -92,13 +101,16 @@ workflows:
         - gradle_file: ./_tmp/build.gradle
         - gradle_task: connectedDebugAndroidTest
         - gradlew_path: ./_tmp/gradlew
+        - app_file_include_filter: dontexport
+        - test_apk_file_include_filter: dontexport
     - script:
         inputs:
         - content: |
             #!/bin/bash
             set -euxo pipefail
 
-            cp ./_tmp/app/screenshots/test_screenshot.png $BITRISE_DEPLOY_DIR/screen_$EMU_VER.png
+            SCREENSHOT=./_tmp/app/screenshots/test_screenshot.png
+            cp $SCREENSHOT $BITRISE_DEPLOY_DIR/screen_$EMU_VER.png
 
             if [[ "$OSTYPE" == "darwin"* ]]; then
               brew install tesseract
@@ -106,8 +118,9 @@ workflows:
               sudo apt install tesseract-ocr libtesseract-dev tesseract-ocr-eng
             fi
 
-            tesseract -l eng test_screenshot.png out.txt
-            cat ./out.txt | grep 'Hello World!'
+            OUT=./_tmp/out
+            tesseract -l eng "$SCREENSHOT" "$OUT"
+            cat "${OUT}.txt" | grep 'Hello World!'
 
   _kill-emulator:
     steps:
