@@ -70,6 +70,7 @@ workflows:
         - profile: $PROFILE
         - api_level: $EMU_VER
         - abi: $ABI
+        - emulator_channel: "0"
     - script:
         inputs:
         - content: |
