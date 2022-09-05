@@ -56,6 +56,7 @@ workflows:
     envs:
     - EMU_VER: 32
     - PROFILE: pixel_2
+    - ABI: x86_64
     after_run:
     - _start-emulator
     - _take_screenshot
@@ -68,6 +69,7 @@ workflows:
         inputs:
         - profile: $PROFILE
         - api_level: $EMU_VER
+        - abi: $ABI
     - script:
         inputs:
         - content: |
