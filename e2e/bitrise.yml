@@ -7,65 +7,119 @@ app:
   - TEST_APP_BRANCH: main
 
 workflows:
-  test_emulator_start_23:
-    envs:
-    - EMU_VER: 23
-    - PROFILE: pixel
-    - ABI: x86
-    after_run:
-    - _start-emulator
-    - _take_screenshot
-    - _kill-emulator
-
-  test_emulator_start_26:
-    envs:
-    - EMU_VER: 26
-    - PROFILE: pixel
-    - ABI: x86
-    after_run:
-    - _start-emulator
-    - _take_screenshot
-    - _kill-emulator
-
-  test_emulator_start_28:
+  test_emulator_start_28_1:
     envs:
     - EMU_VER: 28
     - PROFILE: pixel
     - ABI: x86
+    - UPDATE: "no_update"
+    - HEADLESS: "yes"
+    - GPU: auto
     after_run:
     - _start-emulator
     - _take_screenshot
     - _kill-emulator
 
-  test_emulator_start_29:
+  test_emulator_start_28_2:
     envs:
-    - EMU_VER: 29
+    - EMU_VER: 28
     - PROFILE: pixel
     - ABI: x86
+    - UPDATE: "no_update"
+    - HEADLESS: "yes"
+    - GPU: swiftshader
     after_run:
     - _start-emulator
     - _take_screenshot
     - _kill-emulator
 
-  test_emulator_start_30:
+  test_emulator_start_28_3:
     envs:
-    - EMU_VER: 30
-    - PROFILE: pixel_2
+    - EMU_VER: 28
+    - PROFILE: pixel
     - ABI: x86
+    - UPDATE: "no_update"
+    - HEADLESS: "no"
+    - GPU: auto
     after_run:
     - _start-emulator
     - _take_screenshot
     - _kill-emulator
 
-  test_emulator_start_32:
+  test_emulator_start_28_4:
     envs:
-    - EMU_VER: 32
-    - PROFILE: pixel_2
-    - ABI: x86_64
+    - EMU_VER: 28
+    - PROFILE: pixel
+    - ABI: x86
+    - UPDATE: "no_update"
+    - HEADLESS: "no"
+    - GPU: swiftshader
     after_run:
     - _start-emulator
-    - _run_ui_test_and_take_screenshot
+    - _take_screenshot
     - _kill-emulator
+
+  test_emulator_start_28_5:
+    envs:
+    - EMU_VER: 28
+    - PROFILE: pixel
+    - ABI: x86
+    - UPDATE: "0"
+    - HEADLESS: "yes"
+    - GPU: auto
+    after_run:
+    - _start-emulator
+    - _take_screenshot
+    - _kill-emulator
+
+  test_emulator_start_28_6:
+    envs:
+    - EMU_VER: 28
+    - PROFILE: pixel
+    - ABI: x86
+    - UPDATE: "0"
+    - HEADLESS: "yes"
+    - GPU: swiftshader
+    after_run:
+    - _start-emulator
+    - _take_screenshot
+    - _kill-emulator
+
+  test_emulator_start_28_7:
+    envs:
+    - EMU_VER: 28
+    - PROFILE: pixel
+    - ABI: x86
+    - UPDATE: "0"
+    - HEADLESS: "no"
+    - GPU: auto
+    after_run:
+    - _start-emulator
+    - _take_screenshot
+    - _kill-emulator
+
+  test_emulator_start_28_8:
+    envs:
+    - EMU_VER: 28
+    - PROFILE: pixel
+    - ABI: x86
+    - UPDATE: "0"
+    - HEADLESS: "no"
+    - GPU: swiftshader
+    after_run:
+    - _start-emulator
+    - _take_screenshot
+    - _kill-emulator
+
+  # test_emulator_start_32:
+  #   envs:
+  #   - EMU_VER: 32
+  #   - PROFILE: pixel_2
+  #   - ABI: x86_64
+  #   after_run:
+  #   - _start-emulator
+  #   - _run_ui_test_and_take_screenshot
+  #   - _kill-emulator
 
   _start-emulator:
     steps:
@@ -75,7 +129,9 @@ workflows:
         - profile: $PROFILE
         - api_level: $EMU_VER
         - abi: $ABI
-        - emulator_cahnnel: 0
+        - emulator_cahnnel: $UPDATE 
+        - headless_mode: $HEADLESS 
+        - start_command_flags: -camera-back none -camera-front none -gpu $GPU
     - script:
         inputs:
         - content: |
@@ -144,7 +200,7 @@ workflows:
             sleep 15
             cd $BITRISE_DEPLOY_DIR
             $ANDROID_HOME/platform-tools/adb -s $BITRISE_EMULATOR_SERIAL shell "screencap -p /sdcard/screen.png"
-            $ANDROID_HOME/platform-tools/adb -s $BITRISE_EMULATOR_SERIAL pull "/sdcard/screen.png" "./screen_$EMU_VER.png"
+            $ANDROID_HOME/platform-tools/adb -s $BITRISE_EMULATOR_SERIAL pull "/sdcard/screen.png" "./screen-api:$EMU_VER-headless:$HEADLESS-update:$UPDATE-gpu:$GPU.png"
 
   _kill-emulator:
     steps:
