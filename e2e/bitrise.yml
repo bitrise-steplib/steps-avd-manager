@@ -5,8 +5,22 @@ app:
   envs:
   - TEST_APP_URL: https://github.com/bitrise-io/Bitrise-Android-Sample
   - TEST_APP_BRANCH: main
+  - TAG: google_apis
 
 workflows:
+  test_google_api:
+    envs:
+    - TEST_APP_URL: https://github.com/bitrise-io/Bitrise-Android-GoogleAPI-Sample.git
+    - TEST_APP_BRANCH: main
+    - EMU_VER: 26
+    - PROFILE: pixel
+    - ABI: arm64-v8a
+#    - TAG: default
+    after_run:
+    - _start-emulator
+    - _run_ui_test
+    - _kill-emulator
+
   test_emulator_start_23:
     envs:
     - EMU_VER: 23
@@ -75,6 +89,14 @@ workflows:
         - profile: $PROFILE
         - api_level: $EMU_VER
         - abi: $ABI
+        - tag: $TAG
+    - script:
+        inputs:
+        - content: |-
+            #!/bin/bash
+            set -ex
+            cd ~/.android/avd/emulator.avd
+            cat config.ini | grep -i "PlayStore.enabled="
     - script:
         inputs:
         - content: |
@@ -89,6 +111,27 @@ workflows:
               exit 1
             fi
     - wait-for-android-emulator: { }
+
+  _run_ui_test:
+    steps:
+    - script:
+        inputs:
+        - content: |-
+            #!/bin/env bash
+            set -ex
+            rm -rf ./_tmp
+    - git::https://github.com/bitrise-steplib/bitrise-step-simple-git-clone.git:
+        inputs:
+        - repository_url: $TEST_APP_URL
+        - clone_into_dir: ./_tmp
+        - branch: $TEST_APP_BRANCH
+    - gradle-runner:
+        inputs:
+        - gradle_file: ./_tmp/build.gradle
+        - gradle_task: connectedAndroidTest
+        - gradlew_path: ./_tmp/gradlew
+        - app_file_include_filter: dontexport
+        - test_apk_file_include_filter: dontexport
 
   _run_ui_test_and_take_screenshot:
     steps:
@@ -153,8 +196,8 @@ workflows:
         - content: |
             #!/bin/bash
             set -x
-            adb -s $BITRISE_EMULATOR_SERIAL emu kill
-            adb devices
+            $ANDROID_HOME/platform-tools/adb -s $BITRISE_EMULATOR_SERIAL emu kill
+            $ANDROID_HOME/platform-tools/adb devices
             # It takes a bit of time for the simulator to exit
             sleep 5
-            adb devices
+            $ANDROID_HOME/platform-tools/adb devices
