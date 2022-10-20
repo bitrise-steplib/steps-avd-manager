@@ -8,13 +8,25 @@ app:
   - TAG: google_apis
 
 workflows:
-  test_google_api:
+  test_google_apis:
     envs:
     - TEST_APP_URL: https://github.com/bitrise-io/Bitrise-Android-GoogleAPI-Sample.git
     - TEST_APP_BRANCH: main
     - EMU_VER: 26
     - PROFILE: pixel
     - TAG: google_apis
+    after_run:
+    - _start-emulator
+    - _run_ui_test
+    - _kill-emulator
+
+  test_google_play:
+    envs:
+    - TEST_APP_URL: https://github.com/bitrise-io/Bitrise-Android-GoogleAPI-Sample.git
+    - TEST_APP_BRANCH: main
+    - EMU_VER: 26
+    - PROFILE: pixel
+    - TAG: google_apis_playstore
     after_run:
     - _start-emulator
     - _run_ui_test
