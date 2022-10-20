@@ -122,9 +122,13 @@ workflows:
         inputs:
         - content: |-
             #!/bin/bash
-            set -ex
+            set -x
             cd ~/.android/avd/emulator.avd
-            cat config.ini | grep -i "PlayStore.enabled="
+            config_ini=$(cat config.ini)
+            echo "$config_ini" | grep -i "PlayStore.enabled="
+            if [ $? -ne 0 ]; then
+              echo "$config_ini"
+            fi
     - script:
         inputs:
         - content: |
