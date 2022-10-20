@@ -130,6 +130,7 @@ workflows:
         - api_level: $EMU_VER
         - abi: $ABI
         - tag: $TAG
+        - emulator_channel: 0
     - script:
         inputs:
         - content: |-
