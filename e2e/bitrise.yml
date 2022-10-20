@@ -14,8 +14,7 @@ workflows:
     - TEST_APP_BRANCH: main
     - EMU_VER: 26
     - PROFILE: pixel
-    - ABI: arm64-v8a
-#    - TAG: default
+    - TAG: google_apis
     after_run:
     - _start-emulator
     - _run_ui_test
@@ -25,7 +24,6 @@ workflows:
     envs:
     - EMU_VER: 23
     - PROFILE: pixel
-    - ABI: x86
     after_run:
     - _start-emulator
     - _take_screenshot
@@ -35,7 +33,6 @@ workflows:
     envs:
     - EMU_VER: 26
     - PROFILE: pixel
-    - ABI: x86
     after_run:
     - _start-emulator
     - _take_screenshot
@@ -45,7 +42,6 @@ workflows:
     envs:
     - EMU_VER: 28
     - PROFILE: pixel
-    - ABI: x86
     after_run:
     - _start-emulator
     - _take_screenshot
@@ -55,7 +51,6 @@ workflows:
     envs:
     - EMU_VER: 29
     - PROFILE: pixel
-    - ABI: x86
     after_run:
     - _start-emulator
     - _take_screenshot
@@ -65,7 +60,6 @@ workflows:
     envs:
     - EMU_VER: 30
     - PROFILE: pixel_2
-    - ABI: x86
     after_run:
     - _start-emulator
     - _take_screenshot
@@ -81,7 +75,41 @@ workflows:
     - _run_ui_test_and_take_screenshot
     - _kill-emulator
 
+  _default_abi_for_host_os:
+    steps:
+    - script:
+        run_if: '{{getenv "ABI" | eq ""}}'
+        inputs:
+        - content: |-
+            #!/bin/bash
+            set -ex
+            
+            os=$(uname -s)
+            arch=$(uname -m)
+            
+            abi=""
+            if [[ "$os" == "Darwin" ]] ; then
+              if [[ "$arch" == "arm64" ]] ; then
+                abi="arm64-v8a"
+              elif [[ "$arch" == "amd64" ]] ; then
+                abi="x86"
+              fi
+            elif [[ "$os" == "Linux" ]] ; then
+              abi="x86"
+            fi
+            
+            if [[ "$abi" == "" ]] ; then
+              echo "unsupported: $os-$arch"
+              exit 1
+            fi
+            
+            echo "ABI: $abi"
+            
+            envman add --key "ABI" --value "$abi"
+
   _start-emulator:
+    before_run:
+    - _default_abi_for_host_os
     steps:
     - path::./:
         title: Step Test
