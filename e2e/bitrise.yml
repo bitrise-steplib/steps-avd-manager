@@ -24,7 +24,7 @@ workflows:
     envs:
     - TEST_APP_URL: https://github.com/bitrise-io/Bitrise-Android-GoogleAPI-Sample.git
     - TEST_APP_BRANCH: main
-    - EMU_VER: 26
+    - EMU_VER: 30
     - PROFILE: pixel
     - TAG: google_apis_playstore
     after_run:
