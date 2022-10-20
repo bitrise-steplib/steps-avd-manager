@@ -78,15 +78,15 @@ workflows:
   _default_abi_for_host_os:
     steps:
     - script:
-        run_if: '{{getenv "ABI" | eq ""}}'
+        run_if: "{{getenv \"ABI\" | eq \"\"}}"
         inputs:
         - content: |-
             #!/bin/bash
             set -ex
-            
+
             os=$(uname -s)
             arch=$(uname -m)
-            
+
             abi=""
             if [[ "$os" == "Darwin" ]] ; then
               if [[ "$arch" == "arm64" ]] ; then
@@ -97,14 +97,14 @@ workflows:
             elif [[ "$os" == "Linux" ]] ; then
               abi="x86"
             fi
-            
+
             if [[ "$abi" == "" ]] ; then
               echo "unsupported: $os-$arch"
               exit 1
             fi
-            
+
             echo "ABI: $abi"
-            
+
             envman add --key "ABI" --value "$abi"
 
   _start-emulator:
