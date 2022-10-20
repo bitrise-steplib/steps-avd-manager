@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+
 	"os"
 	"path/filepath"
 	"regexp"
@@ -14,13 +15,25 @@ import (
 	"github.com/bitrise-io/go-steputils/stepconf"
 	"github.com/bitrise-io/go-steputils/tools"
 	"github.com/bitrise-io/go-utils/command"
+	"github.com/bitrise-io/go-utils/fileutil"
 	"github.com/bitrise-io/go-utils/log"
+	"github.com/bitrise-io/go-utils/pathutil"
 	"github.com/bitrise-io/go-utils/sliceutil"
 	"github.com/bitrise-io/go-utils/v2/system"
 	"github.com/kballard/go-shellquote"
 )
 
-// config ...
+const (
+	bootTimeout         = time.Duration(10) * time.Minute
+	deviceCheckInterval = time.Duration(5) * time.Second
+	maxBootAttempts     = 5
+	noUpdate            = "no update"
+)
+
+var (
+	faultIndicators = []string{" BUG: ", "Kernel panic"}
+)
+
 type config struct {
 	AndroidHome       string `env:"ANDROID_HOME"`
 	AndroidSDKRoot    string `env:"ANDROID_SDK_ROOT"`
@@ -33,99 +46,6 @@ type config struct {
 	Abi               string `env:"abi,opt[x86,armeabi-v7a,arm64-v8a,x86_64]"`
 	EmulatorChannel   string `env:"emulator_channel,opt[no update,0,1,2,3]"`
 	IsHeadlessMode    bool   `env:"headless_mode,opt[yes,no]"`
-}
-
-var (
-	faultIndicators = []string{" BUG: ", "Kernel panic"}
-)
-
-const (
-	bootTimeout         = time.Duration(10) * time.Minute
-	deviceCheckInterval = time.Duration(5) * time.Second
-	maxBootAttempts     = 5
-	noUpdate            = "no update"
-)
-
-func runningDeviceInfos(androidHome string) (map[string]string, error) {
-	cmd := command.New(filepath.Join(androidHome, "platform-tools", "adb"), "devices")
-	out, err := cmd.RunAndReturnTrimmedCombinedOutput()
-	if err != nil {
-		log.Printf(err.Error())
-		return map[string]string{}, fmt.Errorf("command failed, error: %s", err)
-	}
-
-	log.Debugf("$ %s", cmd.PrintableCommandArgs())
-	log.Debugf("%s", out)
-
-	// List of devices attached
-	// emulator-5554	device
-	deviceListItemPattern := `^(?P<emulator>emulator-\d*)[\s+](?P<state>.*)`
-	deviceListItemRegexp := regexp.MustCompile(deviceListItemPattern)
-
-	deviceStateMap := map[string]string{}
-
-	scanner := bufio.NewScanner(strings.NewReader(out))
-	for scanner.Scan() {
-		line := scanner.Text()
-		matches := deviceListItemRegexp.FindStringSubmatch(line)
-		if len(matches) == 3 {
-			serial := matches[1]
-			state := matches[2]
-
-			deviceStateMap[serial] = state
-		}
-
-	}
-	if scanner.Err() != nil {
-		return map[string]string{}, fmt.Errorf("scanner failed, error: %s", err)
-	}
-
-	return deviceStateMap, nil
-}
-
-func failf(msg string, args ...interface{}) {
-	log.Errorf(msg, args...)
-
-	cpuIsARM, err := system.CPU.IsARM()
-	if err != nil {
-		log.Errorf("Failed to check CPU: %s", err)
-	} else if cpuIsARM {
-		log.Warnf("This Step is not yet supported on Apple Silicon (M1) machines. If you cannot find a solution to this error, try running this Workflow on an Intel-based machine type.")
-	}
-
-	os.Exit(1)
-}
-
-func currentlyStartedDeviceSerial(alreadyRunningDeviceInfos, currentlyRunningDeviceInfos map[string]string) string {
-	startedSerial := ""
-
-	for serial := range currentlyRunningDeviceInfos {
-		_, found := alreadyRunningDeviceInfos[serial]
-		if !found {
-			startedSerial = serial
-			break
-		}
-	}
-
-	if len(startedSerial) > 0 {
-		state := currentlyRunningDeviceInfos[startedSerial]
-		if state == "device" {
-			return startedSerial
-		}
-	}
-
-	return ""
-}
-
-func queryNewDeviceSerial(androidHome string, runningDevices map[string]string) (string, error) {
-	currentRunningDevices, err := runningDeviceInfos(androidHome)
-	if err != nil {
-		return "", fmt.Errorf("failed to check running devices: %s", err)
-	}
-
-	serial := currentlyStartedDeviceSerial(runningDevices, currentRunningDevices)
-
-	return serial, nil
 }
 
 type phase struct {
@@ -226,6 +146,12 @@ func main() {
 		fmt.Println()
 	}
 
+	if cfg.Tag == "google_apis_playstore" {
+		if err := ensureGooglePlay(cfg.ID, cfg.Tag); err != nil {
+			failf(err.Error())
+		}
+	}
+
 	args := []string{
 		"@" + cfg.ID,
 		"-verbose",
@@ -251,6 +177,142 @@ func main() {
 	log.Printf("- Device with serial: %s started", serial)
 
 	log.Donef("- Done")
+}
+
+func failf(msg string, args ...interface{}) {
+	log.Errorf(msg, args...)
+
+	cpuIsARM, err := system.CPU.IsARM()
+	if err != nil {
+		log.Errorf("Failed to check CPU: %s", err)
+	} else if cpuIsARM {
+		log.Warnf("This Step is not yet supported on Apple Silicon (M1) machines. If you cannot find a solution to this error, try running this Workflow on an Intel-based machine type.")
+	}
+
+	os.Exit(1)
+}
+
+func ensureGooglePlay(avdName, tag string) error {
+	configIniPth := filepath.Join(pathutil.UserHomeDir(), ".android/avd", avdName+".avd", "config.ini")
+
+	file, err := os.Open(configIniPth)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err := file.Close(); err != nil {
+			log.Warnf("failed to close %s: %s", configIniPth, err)
+		}
+	}()
+
+	scanner := bufio.NewScanner(file)
+	var newCont string
+	updated := false
+	for scanner.Scan() {
+		line := scanner.Text()
+		// PlayStore.enabled=no
+		if strings.HasPrefix(strings.ToLower(line), strings.ToLower("PlayStore.enabled")) {
+			split := strings.Split(line, "=")
+			if len(split) < 2 {
+				return fmt.Errorf("couldn't parse config: %s", line)
+			}
+			value := strings.TrimSpace(strings.Join(split[1:], "="))
+			if strings.ToLower(value) != "true" || strings.ToLower(value) != "yes" {
+				log.Warnf("Using %s tag, but PlayStore is disable in config.ini, updating %s...\n", tag, configIniPth)
+
+				newCont += "PlayStore.enabled=true" + "\n"
+				updated = true
+				continue
+			}
+		}
+
+		newCont += line + "\n"
+	}
+
+	if err := scanner.Err(); err != nil {
+		return err
+	}
+
+	if updated {
+		if err := os.Remove(configIniPth); err != nil {
+			return err
+		}
+
+		if err := fileutil.WriteStringToFile(configIniPth, newCont); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func runningDeviceInfos(androidHome string) (map[string]string, error) {
+	cmd := command.New(filepath.Join(androidHome, "platform-tools", "adb"), "devices")
+	out, err := cmd.RunAndReturnTrimmedCombinedOutput()
+	if err != nil {
+		log.Printf(err.Error())
+		return map[string]string{}, fmt.Errorf("command failed, error: %s", err)
+	}
+
+	log.Debugf("$ %s", cmd.PrintableCommandArgs())
+	log.Debugf("%s", out)
+
+	// List of devices attached
+	// emulator-5554	device
+	deviceListItemPattern := `^(?P<emulator>emulator-\d*)[\s+](?P<state>.*)`
+	deviceListItemRegexp := regexp.MustCompile(deviceListItemPattern)
+
+	deviceStateMap := map[string]string{}
+
+	scanner := bufio.NewScanner(strings.NewReader(out))
+	for scanner.Scan() {
+		line := scanner.Text()
+		matches := deviceListItemRegexp.FindStringSubmatch(line)
+		if len(matches) == 3 {
+			serial := matches[1]
+			state := matches[2]
+
+			deviceStateMap[serial] = state
+		}
+
+	}
+	if scanner.Err() != nil {
+		return map[string]string{}, fmt.Errorf("scanner failed, error: %s", err)
+	}
+
+	return deviceStateMap, nil
+}
+
+func currentlyStartedDeviceSerial(alreadyRunningDeviceInfos, currentlyRunningDeviceInfos map[string]string) string {
+	startedSerial := ""
+
+	for serial := range currentlyRunningDeviceInfos {
+		_, found := alreadyRunningDeviceInfos[serial]
+		if !found {
+			startedSerial = serial
+			break
+		}
+	}
+
+	if len(startedSerial) > 0 {
+		state := currentlyRunningDeviceInfos[startedSerial]
+		if state == "device" {
+			return startedSerial
+		}
+	}
+
+	return ""
+}
+
+func queryNewDeviceSerial(androidHome string, runningDevices map[string]string) (string, error) {
+	currentRunningDevices, err := runningDeviceInfos(androidHome)
+	if err != nil {
+		return "", fmt.Errorf("failed to check running devices: %s", err)
+	}
+
+	serial := currentlyStartedDeviceSerial(runningDevices, currentRunningDevices)
+
+	return serial, nil
 }
 
 func startEmulator(emulatorPath string, args []string, androidHome string, runningDevices map[string]string, attempt int) string {

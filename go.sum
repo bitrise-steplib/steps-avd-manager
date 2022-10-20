@@ -8,6 +8,8 @@ github.com/bitrise-io/go-utils v0.0.0-20210520073355-367fa34178f5/go.mod h1:DRx7
 github.com/bitrise-io/go-utils v1.0.1/go.mod h1:ZY1DI+fEpZuFpO9szgDeICM4QbqoWVt0RSY3tRI1heY=
 github.com/bitrise-io/go-utils v1.0.2 h1:w4Mz2IvrgDzrFJECuHdvsK1LHO30cdtuy9bBa7Lw2c0=
 github.com/bitrise-io/go-utils v1.0.2/go.mod h1:ZY1DI+fEpZuFpO9szgDeICM4QbqoWVt0RSY3tRI1heY=
+github.com/bitrise-io/go-utils v1.0.3 h1:xKy0WyiJtRPqeKl/HrwQJ0QdjNOOUhiVHs81RMDwD94=
+github.com/bitrise-io/go-utils v1.0.3/go.mod h1:ZY1DI+fEpZuFpO9szgDeICM4QbqoWVt0RSY3tRI1heY=
 github.com/bitrise-io/go-utils/v2 v2.0.0-alpha.8 h1:IKTN+uFitj/CnjAEe3KPNn7qK9wLJBEaKb0ZJpUUfeY=
 github.com/bitrise-io/go-utils/v2 v2.0.0-alpha.8/go.mod h1:Ta/ards3Ih/3Q6X8tBtcj6zTHcNf1hRSXv1E8lPgIYk=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
