@@ -136,9 +136,9 @@ workflows:
         - content: |-
             #!/bin/bash
             set -ex
-            
+
             cd ~/.android/avd/emulator.avd
-            grep -i "PlayStore.enabled" config.ini 
+            grep -i "PlayStore.enabled" config.ini
             if [ $? -ne 0 ]; then
               echo "'PlayStore.enabled' not found in the config.ini"
             fi
