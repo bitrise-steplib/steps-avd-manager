@@ -145,7 +145,7 @@ func main() {
 	}
 
 	if cfg.Tag == "google_apis_playstore" {
-		if err := ensureGooglePlay(cfg.ID, cfg.Tag); err != nil {
+		if err := ensureGooglePlay(cfg.ID); err != nil {
 			failf(err.Error())
 		}
 	}
