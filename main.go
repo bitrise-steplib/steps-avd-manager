@@ -15,9 +15,7 @@ import (
 	"github.com/bitrise-io/go-steputils/stepconf"
 	"github.com/bitrise-io/go-steputils/tools"
 	"github.com/bitrise-io/go-utils/command"
-	"github.com/bitrise-io/go-utils/fileutil"
 	"github.com/bitrise-io/go-utils/log"
-	"github.com/bitrise-io/go-utils/pathutil"
 	"github.com/bitrise-io/go-utils/sliceutil"
 	"github.com/bitrise-io/go-utils/v2/system"
 	"github.com/kballard/go-shellquote"
@@ -190,60 +188,6 @@ func failf(msg string, args ...interface{}) {
 	}
 
 	os.Exit(1)
-}
-
-func ensureGooglePlay(avdName, tag string) error {
-	configIniPth := filepath.Join(pathutil.UserHomeDir(), ".android/avd", avdName+".avd", "config.ini")
-
-	file, err := os.Open(configIniPth)
-	if err != nil {
-		return err
-	}
-	defer func() {
-		if err := file.Close(); err != nil {
-			log.Warnf("failed to close %s: %s", configIniPth, err)
-		}
-	}()
-
-	scanner := bufio.NewScanner(file)
-	var newCont string
-	updated := false
-	for scanner.Scan() {
-		line := scanner.Text()
-		// PlayStore.enabled=no
-		if strings.HasPrefix(strings.ToLower(line), strings.ToLower("PlayStore.enabled")) {
-			split := strings.Split(line, "=")
-			if len(split) < 2 {
-				return fmt.Errorf("couldn't parse config: %s", line)
-			}
-			value := strings.TrimSpace(strings.Join(split[1:], "="))
-			if strings.ToLower(value) != "true" || strings.ToLower(value) != "yes" {
-				log.Warnf("Using %s tag, but PlayStore is disable in config.ini, updating %s...\n", tag, configIniPth)
-
-				newCont += "PlayStore.enabled=true" + "\n"
-				updated = true
-				continue
-			}
-		}
-
-		newCont += line + "\n"
-	}
-
-	if err := scanner.Err(); err != nil {
-		return err
-	}
-
-	if updated {
-		if err := os.Remove(configIniPth); err != nil {
-			return err
-		}
-
-		if err := fileutil.WriteStringToFile(configIniPth, newCont); err != nil {
-			return err
-		}
-	}
-
-	return nil
 }
 
 func runningDeviceInfos(androidHome string) (map[string]string, error) {
