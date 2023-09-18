@@ -12,7 +12,7 @@ description: |-
   3. Set the **Android API Level**. The new virtual device will run with the specified Android version.
   4. Select an **OS Tag** to have the required toolset on the new virtual device.
 
-  Some system images are pre-installed on the virtual machines. In this case the step won't have to spend time downloading the requested image. To check the list of pre-installed images for each stack, visit the [system reports](https://github.com/bitrise-io/bitrise.io/tree/master/system_reports).
+  Some system images are pre-installed on the virtual machines. In this case the step won't have to spend time downloading the requested image. To check the list of pre-installed images for each stack, visit the [system reports](https://stacks.bitrise.io).
 
   ### Troubleshooting
   The emulator needs some time to boot up. The earlier you place the Step in your Workflow, the more tasks, such as cloning or caching, you can complete in your Workflow before the emulator starts working.
