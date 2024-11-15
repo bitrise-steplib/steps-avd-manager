@@ -4,7 +4,7 @@ summary: |-
 description: |-
   Run instrumented and UI tests on a virtual Android device. Once some basic inputs are set, the Step checks the requirements, downloads the selected system image before creating and starting the emulator.
 
-  **Warning:** This Step is not yet supported on Apple Silicon (M1) machines. If you cannot find a solution to this error, try running this Workflow on an Intel-based machine type.
+  **Warning:** Android emulators can't run on Apple Silicon build machines. Until nested virtualization becomes supported, you should run emulator tests on Linux machines.
 
   ### Configuring the Step
   1. Add the **AVD Manager** Step to your Workflow as one of the first Steps in your Workflow.
@@ -31,9 +31,8 @@ source_code_url: https://github.com/bitrise-steplib/steps-avd-manager
 support_url: https://github.com/bitrise-steplib/steps-avd-manager/issues
 
 type_tags:
-- utility
+- test
 
-is_requires_admin_user: true
 is_always_run: false
 is_skippable: false
 
@@ -54,8 +53,8 @@ inputs:
 - api_level: 26
   opts:
     title: Android API Level
-    summary: The device will run with the specified version of android.
-    description: The device will run with the specified version of android.
+    summary: The device will run with the specified system image version.
+    description: The device will run with the specified system image version.
     is_required: true
 - tag: google_apis
   opts:
@@ -93,7 +92,7 @@ inputs:
     summary: Set the device's ID. (This will be the name under $HOME/.android/avd/)
     description: Set the device's ID. (This will be the name under $HOME/.android/avd/)
     is_required: true
-- create_command_flags: --sdcard 512M
+- create_command_flags: --sdcard 2048M
   opts:
     category: Debug
     title: Create AVD command flags

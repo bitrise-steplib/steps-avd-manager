@@ -219,9 +219,12 @@ func main() {
 		log.Infof(phase.name)
 		log.Donef("$ %s", phase.command.PrintableCommandArgs())
 
+		startTime := time.Now()
 		if out, err := phase.command.RunAndReturnTrimmedCombinedOutput(); err != nil {
+			log.Printf("Duration: %s", time.Since(startTime))
 			failf("Failed to run phase: %s, output: %s", err, out)
 		}
+		log.Printf("Duration: %s", time.Since(startTime).Round(time.Millisecond))
 
 		fmt.Println()
 	}
