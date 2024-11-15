@@ -9,7 +9,7 @@ Create and boot an Android emulator used for device testing
 
 Run instrumented and UI tests on a virtual Android device. Once some basic inputs are set, the Step checks the requirements, downloads the selected system image before creating and starting the emulator.
 
-**Warning:** This Step is not yet supported on Apple Silicon (M1) machines. If you cannot find a solution to this error, try running this Workflow on an Intel-based machine type.
+**Warning:** Android emulators can't run on Apple Silicon build machines. Until nested virtualization becomes supported, you should run emulator tests on Linux machines.
 
 ### Configuring the Step
 1. Add the **AVD Manager** Step to your Workflow as one of the first Steps in your Workflow.
@@ -47,11 +47,11 @@ You can also run this step directly with [Bitrise CLI](https://github.com/bitris
 | Key | Description | Flags | Default |
 | --- | --- | --- | --- |
 | `profile` | The profile contains parameters of the device, such as screen size and resolution.  To see the complete list of available profiles use the `avdmanager list device` command locally and use the `id` value for this input.  | required | `pixel` |
-| `api_level` | The device will run with the specified version of android. | required | `26` |
+| `api_level` | The device will run with the specified system image version. | required | `26` |
 | `tag` | Select OS tag to have the required toolset on the device. | required | `google_apis` |
 | `abi` | Select which ABI to use running the emulator. Availability depends on API level. Please use `sdkmanager --list` command to see the available ABIs. | required | `x86` |
 | `emulator_id` | Set the device's ID. (This will be the name under $HOME/.android/avd/) | required | `emulator` |
-| `create_command_flags` | Flags used when running the command to create the emulator. |  | `--sdcard 512M` |
+| `create_command_flags` | Flags used when running the command to create the emulator. |  | `--sdcard 2048M` |
 | `start_command_flags` | Flags used when running the command to start the emulator. |  | `-camera-back none -camera-front none` |
 | `emulator_channel` | Select which channel to use with `sdkmanager` to fetch *emulator* package. Available options are no update, or channels 0 (Stable), 1 (Beta), 2 (Dev), and 3 (Canary).  - `no update`: The *emulator* preinstalled on the Stack will be used. *system-image* will be updated to the latest Stable version.  To update *emulator* and *system image* to the latest available in a given channel: - `0`: Stable channel - `1`: Beta channel - `2`: Dev channel - `3`: Canary channel | required | `no update` |
 | `headless_mode` | In headless mode the emulator is not launched in the foreground.  If this input is set, the emulator will not be visible but tests (even the screenshots) will run just like if the emulator ran in the foreground. | required | `yes` |
