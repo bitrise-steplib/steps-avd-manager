@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/bitrise-io/go-utils/v2/command"
+	"github.com/bitrise-io/go-utils/v2/env"
 	"github.com/stretchr/testify/require"
 )
 
@@ -129,7 +130,7 @@ func TestBackupEmuDir(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			cmdFactory := fakeCommandFactory{}
+			cmdFactory := command.NewFactory(env.NewRepository())
 			androidHome := t.TempDir()
 			installer := EmuInstaller{
 				androidHome: androidHome,
@@ -143,13 +144,13 @@ func TestBackupEmuDir(t *testing.T) {
 			require.NoError(t, err)
 
 			_, err = os.Stat(filepath.Join(androidHome, "emulator"))
-			require.True(t, os.IsNotExist(err))
+			require.ErrorIs(t, err, os.ErrNotExist)
 
 			_, err = os.Stat(filepath.Join(androidHome, backupDir))
 			if tt.expectBackup {
 				require.NoError(t, err)
 			} else {
-				require.True(t, os.IsNotExist(err))
+				require.ErrorIs(t, err, os.ErrNotExist)
 			}
 		})
 	}
