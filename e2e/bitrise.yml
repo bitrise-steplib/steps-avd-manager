@@ -176,7 +176,7 @@ workflows:
             # It takes a bit of time for the simulator to exit
             sleep 5
             adb devices
-  
+
   _restore_emulator:
     steps:
     - script:
