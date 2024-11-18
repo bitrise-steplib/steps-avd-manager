@@ -17,6 +17,7 @@ workflows:
     - _start-emulator
     - _take_screenshot
     - _kill-emulator
+    - _restore_emulator
   test_emulator_start_23:
     envs:
     - EMU_VER: 23
@@ -175,3 +176,14 @@ workflows:
             # It takes a bit of time for the simulator to exit
             sleep 5
             adb devices
+  
+  _restore_emulator:
+    steps:
+    - script:
+        is_always_run: true
+        inputs:
+        - content: |-
+            #!/bin/bash
+            set -ex
+            rm $ANDROID_HOME/emulator || true
+            mv $ANDROID_HOME/emulator_original $ANDROID_HOME/emulator

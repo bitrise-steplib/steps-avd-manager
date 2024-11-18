@@ -160,7 +160,7 @@ func main() {
 	}
 
 	// Initialize Android SDK
-	log.Printf("Initialize Android SDK")
+	log.Infof("Initialize Android SDK")
 	androidSdk, err := sdk.NewDefaultModel(sdk.Environment{
 		AndroidHome:    cfg.AndroidHome,
 		AndroidSDKRoot: cfg.AndroidSDKRoot,
@@ -199,6 +199,16 @@ func main() {
 		failf("Failed to parse start command args, error: %s", err)
 	}
 
+	if cfg.EmulatorBuildNumber != emuBuildNumberPreinstalled {
+		cmdFactory := v2command.NewFactory(env.NewRepository())
+		logger := v2log.NewLogger()
+		httpClient := retryhttp.NewClient(logger)
+		emuInstaller := emuinstaller.NewEmuInstaller(androidHome, cmdFactory, logger, httpClient)
+		if err := emuInstaller.Install(cfg.EmulatorBuildNumber); err != nil {
+			failf("Failed to install emulator build %s: %s", cfg.EmulatorBuildNumber, err)
+		}
+	}
+
 	var (
 		systemImageChannel = "0"
 		phases             []phase
@@ -214,15 +224,6 @@ func main() {
 		)
 	}
 
-	if cfg.EmulatorBuildNumber != emuBuildNumberPreinstalled {
-		cmdFactory := v2command.NewFactory(env.NewRepository())
-		logger := v2log.NewLogger()
-		httpClient := retryhttp.NewClient(logger)
-		emuInstaller := emuinstaller.NewEmuInstaller(androidHome, cmdFactory, logger, httpClient)
-		if err := emuInstaller.Install(cfg.EmulatorBuildNumber); err != nil {
-			failf("Failed to install emulator build %s: %s", cfg.EmulatorBuildNumber, err)
-		}
-	}
 
 	phases = append(phases, []phase{
 		{

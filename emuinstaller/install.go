@@ -9,6 +9,7 @@ import (
 	"regexp"
 	"runtime"
 	"strconv"
+	"time"
 
 	v1command "github.com/bitrise-io/go-utils/command"
 	"github.com/bitrise-io/go-utils/v2/command"
@@ -36,6 +37,8 @@ func (e EmuInstaller) Install(buildNumber string) error {
 		return fmt.Errorf("the provided build number (%s) is not a number. Did you use the VERSION number instead of the BUILD number maybe?", buildNumber)
 	}
 
+	startTime := time.Now()
+
 	installed, err := e.isVersionInstalled(buildNumber)
 	if err != nil {
 		e.logger.Warnf("Error checking if emulator build %s is installed: %w", buildNumber, err)
@@ -57,7 +60,7 @@ func (e EmuInstaller) Install(buildNumber string) error {
 	if err != nil {
 		return err
 	}
-	e.logger.Donef("Done!")
+	e.logger.Donef("Done in %s", time.Since(startTime).Round(time.Millisecond))
 
 	isInstalled, err := e.isVersionInstalled(buildNumber)
 	if err != nil {
@@ -67,6 +70,7 @@ func (e EmuInstaller) Install(buildNumber string) error {
 		return fmt.Errorf("version mismatch after install")
 	}
 
+	e.logger.Println()
 	return nil
 }
 
