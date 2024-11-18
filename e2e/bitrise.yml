@@ -11,8 +11,8 @@ workflows:
     envs:
     - EMU_VER: 34
     - PROFILE: pixel
-    - ABI: x86
-    - EMU_BUILD_NUMBER: 12414864  # 35.2.10
+    - ABI: x86_64
+    - EMU_BUILD_NUMBER: 12325540  # 35.1.21
     after_run:
     - _start-emulator
     - _take_screenshot
