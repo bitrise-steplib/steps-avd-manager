@@ -12,7 +12,7 @@ workflows:
     - EMU_VER: 34
     - PROFILE: pixel
     - ABI: x86
-    - EMU_BUILD_NUMBER: 12414864 # 35.2.10
+    - EMU_BUILD_NUMBER: 12414864  # 35.2.10
   test_emulator_start_23:
     envs:
     - EMU_VER: 23
