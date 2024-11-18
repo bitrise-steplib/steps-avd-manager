@@ -16,23 +16,28 @@ import (
 	"github.com/bitrise-io/go-utils/command"
 	"github.com/bitrise-io/go-utils/log"
 	"github.com/bitrise-io/go-utils/sliceutil"
+	v2command "github.com/bitrise-io/go-utils/v2/command"
+	"github.com/bitrise-io/go-utils/v2/env"
+	v2log "github.com/bitrise-io/go-utils/v2/log"
+	"github.com/bitrise-io/go-utils/v2/retryhttp"
 	"github.com/bitrise-io/go-utils/v2/system"
+	"github.com/bitrise-steplib/steps-avd-manager/emuinstaller"
 	"github.com/kballard/go-shellquote"
 )
 
-// config ...
 type config struct {
-	AndroidHome       string `env:"ANDROID_HOME"`
-	AndroidSDKRoot    string `env:"ANDROID_SDK_ROOT"`
-	APILevel          int    `env:"api_level,required"`
-	Tag               string `env:"tag,opt[google_apis,google_apis_playstore,aosp_atd,google_atd,android-wear,android-tv,default]"`
-	DeviceProfile     string `env:"profile,required"`
-	CreateCommandArgs string `env:"create_command_flags"`
-	StartCommandArgs  string `env:"start_command_flags"`
-	ID                string `env:"emulator_id,required"`
-	Abi               string `env:"abi,opt[x86,armeabi-v7a,arm64-v8a,x86_64]"`
-	EmulatorChannel   string `env:"emulator_channel,opt[no update,0,1,2,3]"`
-	IsHeadlessMode    bool   `env:"headless_mode,opt[yes,no]"`
+	AndroidHome         string `env:"ANDROID_HOME"`
+	AndroidSDKRoot      string `env:"ANDROID_SDK_ROOT"`
+	APILevel            int    `env:"api_level,required"`
+	Tag                 string `env:"tag,opt[google_apis,google_apis_playstore,aosp_atd,google_atd,android-wear,android-tv,default]"`
+	DeviceProfile       string `env:"profile,required"`
+	CreateCommandArgs   string `env:"create_command_flags"`
+	StartCommandArgs    string `env:"start_command_flags"`
+	ID                  string `env:"emulator_id,required"`
+	Abi                 string `env:"abi,opt[x86,armeabi-v7a,arm64-v8a,x86_64]"`
+	EmulatorChannel     string `env:"emulator_channel,opt[no update,0,1,2,3]"`
+	EmulatorBuildNumber string `env:"emulator_build_number,required"`
+	IsHeadlessMode      bool   `env:"headless_mode,opt[yes,no]"`
 }
 
 var (
@@ -40,10 +45,11 @@ var (
 )
 
 const (
-	bootTimeout         = time.Duration(10) * time.Minute
-	deviceCheckInterval = time.Duration(5) * time.Second
-	maxBootAttempts     = 5
-	noUpdate            = "no update"
+	bootTimeout                = time.Duration(10) * time.Minute
+	deviceCheckInterval        = time.Duration(5) * time.Second
+	maxBootAttempts            = 5
+	emuChannelNoUpdate         = "no update"
+	emuBuildNumberPreinstalled = "preinstalled"
 )
 
 func runningDeviceInfos(androidHome string) (map[string]string, error) {
@@ -133,13 +139,25 @@ type phase struct {
 	command *command.Model
 }
 
+func validateConfig(cfg config) error {
+	if cfg.EmulatorChannel != emuChannelNoUpdate && cfg.EmulatorBuildNumber != emuBuildNumberPreinstalled {
+		return fmt.Errorf("emulator_channel is set to `%s`, and emulator_build_number is also set to `%s`. These inputs are exclusive, please set either of them to the default value", cfg.EmulatorChannel, cfg.EmulatorBuildNumber)
+	}
+
+	return nil
+}
+
 func main() {
 	var cfg config
 	if err := stepconf.Parse(&cfg); err != nil {
-		failf("Issue with input: %s", err)
+		failf("Couldn't parse step inputs: %s", err)
 	}
 	stepconf.Print(cfg)
 	fmt.Println()
+
+	if err := validateConfig(cfg); err != nil {
+		failf("Step input validation failed: %s", err)
+	}
 
 	// Initialize Android SDK
 	log.Printf("Initialize Android SDK")
@@ -185,20 +203,30 @@ func main() {
 		systemImageChannel = "0"
 		phases             []phase
 	)
-	if cfg.EmulatorChannel != noUpdate {
+	if cfg.EmulatorChannel != emuChannelNoUpdate {
 		systemImageChannel = cfg.EmulatorChannel
-		phases = []phase{
-			{
+		phases = append(phases,
+			phase{
 				"Updating emulator",
 				command.New(sdkManagerPath, "--verbose", "--channel="+cfg.EmulatorChannel, "emulator").
 					SetStdin(strings.NewReader(yes)), // hitting yes in case it waits for accepting license
 			},
+		)
+	}
+
+	if cfg.EmulatorBuildNumber != emuBuildNumberPreinstalled {
+		cmdFactory := v2command.NewFactory(env.NewRepository())
+		logger := v2log.NewLogger()
+		httpClient := retryhttp.NewClient(logger)
+		emuInstaller := emuinstaller.NewEmuInstaller(androidHome, cmdFactory, logger, httpClient)
+		if err := emuInstaller.Install(cfg.EmulatorBuildNumber); err != nil {
+			failf("Failed to install emulator build %s: %s", cfg.EmulatorBuildNumber, err)
 		}
 	}
 
 	phases = append(phases, []phase{
 		{
-			"Updating system-image packages",
+			"Installing system image package",
 			command.New(sdkManagerPath, "--verbose", "--channel="+systemImageChannel, pkg).
 				SetStdin(strings.NewReader(yes)), // hitting yes in case it waits for accepting license
 		},

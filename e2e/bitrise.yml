@@ -7,11 +7,18 @@ app:
   - TEST_APP_BRANCH: main
 
 workflows:
+  test_emulator_custom_build_number:
+    envs:
+    - EMU_VER: 34
+    - PROFILE: pixel
+    - ABI: x86
+    - EMU_BUILD_NUMBER: 12414864 # 35.2.10
   test_emulator_start_23:
     envs:
     - EMU_VER: 23
     - PROFILE: pixel
     - ABI: x86
+    - EMU_BUILD_NUMBER: preinstalled
     after_run:
     - _start-emulator
     - _take_screenshot
@@ -22,6 +29,7 @@ workflows:
     - EMU_VER: 26
     - PROFILE: pixel
     - ABI: x86
+    - EMU_BUILD_NUMBER: preinstalled
     after_run:
     - _start-emulator
     - _take_screenshot
@@ -32,6 +40,7 @@ workflows:
     - EMU_VER: 28
     - PROFILE: pixel
     - ABI: x86
+    - EMU_BUILD_NUMBER: preinstalled
     after_run:
     - _start-emulator
     - _take_screenshot
@@ -42,6 +51,7 @@ workflows:
     - EMU_VER: 29
     - PROFILE: pixel
     - ABI: x86
+    - EMU_BUILD_NUMBER: preinstalled
     after_run:
     - _start-emulator
     - _take_screenshot
@@ -52,6 +62,7 @@ workflows:
     - EMU_VER: 30
     - PROFILE: pixel_2
     - ABI: x86
+    - EMU_BUILD_NUMBER: preinstalled
     after_run:
     - _start-emulator
     - _take_screenshot
@@ -62,6 +73,7 @@ workflows:
     - EMU_VER: 32
     - PROFILE: pixel_2
     - ABI: x86_64
+    - EMU_BUILD_NUMBER: preinstalled
     after_run:
     - _start-emulator
     - _run_ui_test_and_take_screenshot
@@ -75,6 +87,7 @@ workflows:
         - profile: $PROFILE
         - api_level: $EMU_VER
         - abi: $ABI
+        - emulator_build_number: $EMU_BUILD_NUMBER
     - script:
         inputs:
         - content: |
