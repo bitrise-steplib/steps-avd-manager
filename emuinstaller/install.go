@@ -96,11 +96,23 @@ func (e EmuInstaller) backupEmuDir() error {
 		}
 	}
 
-	err = move(filepath.Join(e.androidHome, "emulator"), backupPath)
+	_, err = os.Stat(filepath.Join(e.androidHome, "emulator"))
 	if err != nil {
-		if !errors.Is(err, os.ErrNotExist) {
-			return fmt.Errorf("backup existing emulator: %w", err)
+		if errors.Is(err, os.ErrNotExist) {
+			// Nothing to backup
+			return nil
 		}
+		return fmt.Errorf("check if emulator exists: %w", err)
+	}
+	// https://stackoverflow.com/questions/73981482/moving-a-file-in-a-container-to-a-folder-that-has-a-mounted-volume-docker
+	out, err := e.cmdFactory.Create(
+		"mv",
+		[]string{filepath.Join(e.androidHome, "emulator"), backupPath},
+		nil,
+	).RunAndReturnTrimmedCombinedOutput()
+
+	if err != nil {
+		return fmt.Errorf("backup existing emulator: %s", out)
 	}
 
 	return nil
@@ -153,53 +165,4 @@ func (e EmuInstaller) download(buildNumber string) error {
 
 func downloadURL(os, arch, buildNumber string) string {
 	return fmt.Sprintf("https://redirector.gvt1.com/edgedl/android/repository/emulator-%s_%s-%s.zip", os, arch, buildNumber)
-}
-
-// https://stackoverflow.com/questions/73981482/moving-a-file-in-a-container-to-a-folder-that-has-a-mounted-volume-docker
-func move(sourcePath, destPath string) error {
-	sourceAbs, err := filepath.Abs(sourcePath)
-	if err != nil {
-		return err
-	}
-	destAbs, err := filepath.Abs(destPath)
-	if err != nil {
-		return err
-	}
-	if sourceAbs == destAbs {
-		return nil
-	}
-	inputFile, err := os.Open(sourcePath)
-	if err != nil {
-		return err
-	}
-	defer inputFile.Close()
-
-	destDir := filepath.Dir(destPath)
-	_, err = os.Stat(destDir)
-	if !os.IsNotExist(err) {
-		err = os.MkdirAll(destDir, 0770)
-		if err != nil {
-			return err
-		}
-	}
-	outputFile, err := os.Create(destPath)
-	if err != nil {
-		inputFile.Close()
-		return err
-	}
-	defer outputFile.Close()
-
-	_, err = io.Copy(outputFile, inputFile)
-	if err != nil {
-		if errRem := os.Remove(destPath); errRem != nil {
-			return fmt.Errorf(
-				"unable to os.Remove error: %s after io.Copy error: %s",
-				errRem,
-				err,
-			)
-		}
-		return err
-	}
-
-	return os.Remove(sourcePath)
 }
