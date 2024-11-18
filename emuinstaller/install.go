@@ -155,7 +155,7 @@ func (e EmuInstaller) download(buildNumber string) error {
 		return fmt.Errorf("download %s to %s: %w", url, zipPath, err)
 	}
 
-	err = v1command.UnZIP(zipPath, filepath.Join(e.androidHome, "emulator"))
+	err = v1command.UnZIP(zipPath, e.androidHome)
 	if err != nil {
 		return fmt.Errorf("unzip emulator: %w", err)
 	}
@@ -164,5 +164,6 @@ func (e EmuInstaller) download(buildNumber string) error {
 }
 
 func downloadURL(os, arch, buildNumber string) string {
+	// https://developer.android.com/studio/emulator_archive
 	return fmt.Sprintf("https://redirector.gvt1.com/edgedl/android/repository/emulator-%s_%s-%s.zip", os, arch, buildNumber)
 }
