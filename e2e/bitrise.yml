@@ -13,6 +13,10 @@ workflows:
     - PROFILE: pixel
     - ABI: x86
     - EMU_BUILD_NUMBER: 12414864  # 35.2.10
+    after_run:
+    - _start-emulator
+    - _take_screenshot
+    - _kill-emulator
   test_emulator_start_23:
     envs:
     - EMU_VER: 23
