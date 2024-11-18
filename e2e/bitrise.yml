@@ -181,9 +181,10 @@ workflows:
     steps:
     - script:
         is_always_run: true
+        title: Restore original emulator
         inputs:
         - content: |-
             #!/bin/bash
             set -ex
-            rm $ANDROID_HOME/emulator || true
+            rm -rf $ANDROID_HOME/emulator || true
             mv $ANDROID_HOME/emulator_original $ANDROID_HOME/emulator
