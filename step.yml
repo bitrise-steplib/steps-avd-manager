@@ -73,7 +73,7 @@ inputs:
     - default
 - abi: x86
   opts:
-    category: Debug
+    category: Advanced
     title: ABI
     summary: Select which ABI to use running the emulator. Availability depends on API level. Please use `sdkmanager --list` command to see the available ABIs.
     description: Select which ABI to use running the emulator. Availability depends on API level. Please use `sdkmanager --list` command to see the available ABIs.
@@ -87,28 +87,38 @@ inputs:
     - mips
 - emulator_id: emulator
   opts:
-    category: Debug
+    category: Advanced
     title: ID
     summary: Set the device's ID. (This will be the name under $HOME/.android/avd/)
     description: Set the device's ID. (This will be the name under $HOME/.android/avd/)
     is_required: true
 - create_command_flags: --sdcard 2048M
   opts:
-    category: Debug
+    category: Advanced
     title: Create AVD command flags
     summary: Flags used when running the command to create the emulator.
     description: Flags used when running the command to create the emulator.
     is_required: false
 - start_command_flags: -camera-back none -camera-front none
   opts:
-    category: Debug
+    category: Advanced
     title: Start AVD command flags
     summary: Flags used when running the command to start the emulator.
     description: Flags used when running the command to start the emulator.
     is_required: false
+- emulator_build_number: preinstalled
+  opts:
+    category: Emulator
+    title: Emulator build number
+    description: |-
+      Allows installing a specific emulator version at runtime. The default value (`preinstalled`) will use the emulator version preinstalled on the Stack, which is updated regularly to the latest stable version.
+
+      See available build numbers [here](https://developer.android.com/studio/emulator_archive) (you need the last segment of the download URL). Note: this input expects the **build number**, not the **version number**.
+
+      When this input set to a specific build number, the `emulator_channel` input should be set to `no update`.
 - emulator_channel: no update
   opts:
-    category: Debug
+    category: Emulator
     title: Emulator channel
     summary: Select which channel to use with `sdkmanager` to fetch *emulator* package. Available options are no update, or channels 0 (Stable), 1 (Beta), 2 (Dev), and 3 (Canary).
     description: |-
@@ -121,6 +131,8 @@ inputs:
       - `1`: Beta channel
       - `2`: Dev channel
       - `3`: Canary channel
+
+      When this input set to a specific channel, the `emulator_build_number` input should be set to `preinstalled`.
     is_expand: true
     is_required: true
     value_options:
@@ -131,7 +143,7 @@ inputs:
     - "3"
 - headless_mode: "yes"
   opts:
-    category: Debug
+    category: Emulator
     title: Run the emulator in headless mode
     summary: In headless mode the emulator is not launched in the foreground.
     description: |-
