@@ -60,7 +60,7 @@ func (e EmuInstaller) Install(buildNumber string) error {
 	if err != nil {
 		return err
 	}
-	e.logger.Donef("Done in %s", time.Since(startTime).Round(time.Millisecond))
+	e.logger.Printf("Duration: %s", time.Since(startTime).Round(time.Second))
 
 	isInstalled, err := e.isVersionInstalled(buildNumber)
 	if err != nil {
