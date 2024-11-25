@@ -113,7 +113,7 @@ inputs:
     description: |-
       Allows installing a specific emulator version at runtime. The default value (`preinstalled`) will use the emulator version preinstalled on the Stack, which is updated regularly to the latest stable version.
 
-      See available build numbers [here](https://developer.android.com/studio/emulator_archive) (you need the last segment of the download URL). Note: this input expects the **build number**, not the **version number**.
+      See available build numbers [here](https://developer.android.com/studio/emulator_archive). You need the last segment of the download URL, for example, build number `12658423` from `emulator-linux_x64-12658423.zip`. Note: this input expects the **build number**, not the **version number**.
 
       When this input set to a specific build number, the `emulator_channel` input should be set to `no update`.
 - emulator_channel: no update
