@@ -1,12 +1,10 @@
 package main
 
 import (
-	"bufio"
 	"bytes"
 	"fmt"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"time"
 
@@ -21,6 +19,7 @@ import (
 	v2log "github.com/bitrise-io/go-utils/v2/log"
 	"github.com/bitrise-io/go-utils/v2/retryhttp"
 	"github.com/bitrise-io/go-utils/v2/system"
+	"github.com/bitrise-steplib/steps-avd-manager/adb"
 	"github.com/bitrise-steplib/steps-avd-manager/emuinstaller"
 	"github.com/kballard/go-shellquote"
 )
@@ -52,43 +51,6 @@ const (
 	emuBuildNumberPreinstalled = "preinstalled"
 )
 
-func runningDeviceInfos(androidHome string) (map[string]string, error) {
-	cmd := command.New(filepath.Join(androidHome, "platform-tools", "adb"), "devices")
-	out, err := cmd.RunAndReturnTrimmedCombinedOutput()
-	if err != nil {
-		log.Printf(err.Error())
-		return map[string]string{}, fmt.Errorf("command failed, error: %s", err)
-	}
-
-	log.Debugf("$ %s", cmd.PrintableCommandArgs())
-	log.Debugf("%s", out)
-
-	// List of devices attached
-	// emulator-5554	device
-	deviceListItemPattern := `^(?P<emulator>emulator-\d*)[\s+](?P<state>.*)`
-	deviceListItemRegexp := regexp.MustCompile(deviceListItemPattern)
-
-	deviceStateMap := map[string]string{}
-
-	scanner := bufio.NewScanner(strings.NewReader(out))
-	for scanner.Scan() {
-		line := scanner.Text()
-		matches := deviceListItemRegexp.FindStringSubmatch(line)
-		if len(matches) == 3 {
-			serial := matches[1]
-			state := matches[2]
-
-			deviceStateMap[serial] = state
-		}
-
-	}
-	if scanner.Err() != nil {
-		return map[string]string{}, fmt.Errorf("scanner failed, error: %s", err)
-	}
-
-	return deviceStateMap, nil
-}
-
 func failf(msg string, args ...interface{}) {
 	log.Errorf(msg, args...)
 
@@ -100,38 +62,6 @@ func failf(msg string, args ...interface{}) {
 	}
 
 	os.Exit(1)
-}
-
-func currentlyStartedDeviceSerial(alreadyRunningDeviceInfos, currentlyRunningDeviceInfos map[string]string) string {
-	startedSerial := ""
-
-	for serial := range currentlyRunningDeviceInfos {
-		_, found := alreadyRunningDeviceInfos[serial]
-		if !found {
-			startedSerial = serial
-			break
-		}
-	}
-
-	if len(startedSerial) > 0 {
-		state := currentlyRunningDeviceInfos[startedSerial]
-		if state == "device" {
-			return startedSerial
-		}
-	}
-
-	return ""
-}
-
-func queryNewDeviceSerial(androidHome string, runningDevices map[string]string) (string, error) {
-	currentRunningDevices, err := runningDeviceInfos(androidHome)
-	if err != nil {
-		return "", fmt.Errorf("failed to check running devices: %s", err)
-	}
-
-	serial := currentlyStartedDeviceSerial(runningDevices, currentRunningDevices)
-
-	return serial, nil
 }
 
 type phase struct {
@@ -148,6 +78,9 @@ func validateConfig(cfg config) error {
 }
 
 func main() {
+	cmdFactory := v2command.NewFactory(env.NewRepository())
+	logger := v2log.NewLogger()
+
 	var cfg config
 	if err := stepconf.Parse(&cfg); err != nil {
 		failf("Couldn't parse step inputs: %s", err)
@@ -170,7 +103,8 @@ func main() {
 	}
 
 	androidHome := androidSdk.GetAndroidHome()
-	runningDevices, err := runningDeviceInfos(androidHome)
+	adbClient := adb.New(androidHome, cmdFactory, logger)
+	runningDevicesBeforeBoot, err := adbClient.Devices()
 	if err != nil {
 		failf("Failed to check running devices, error: %s", err)
 	}
@@ -200,8 +134,6 @@ func main() {
 	}
 
 	if cfg.EmulatorBuildNumber != emuBuildNumberPreinstalled {
-		cmdFactory := v2command.NewFactory(env.NewRepository())
-		logger := v2log.NewLogger()
 		httpClient := retryhttp.NewClient(logger)
 		emuInstaller := emuinstaller.NewEmuInstaller(androidHome, cmdFactory, logger, httpClient)
 		if err := emuInstaller.Install(cfg.EmulatorBuildNumber); err != nil {
@@ -223,7 +155,6 @@ func main() {
 			},
 		)
 	}
-
 
 	phases = append(phases, []phase{
 		{
@@ -275,7 +206,7 @@ func main() {
 	}
 	args = append(args, startCustomFlags...)
 
-	serial := startEmulator(emulatorPath, args, androidHome, runningDevices, 1)
+	serial := startEmulator(adbClient, emulatorPath, args, androidHome, runningDevicesBeforeBoot, 1)
 
 	if err := tools.ExportEnvironmentWithEnvman("BITRISE_EMULATOR_SERIAL", serial); err != nil {
 		log.Warnf("Failed to export environment (BITRISE_EMULATOR_SERIAL), error: %s", err)
@@ -285,7 +216,7 @@ func main() {
 	log.Donef("- Done")
 }
 
-func startEmulator(emulatorPath string, args []string, androidHome string, runningDevices map[string]string, attempt int) string {
+func startEmulator(adbClient adb.ADB, emulatorPath string, args []string, androidHome string, runningDevices map[string]string, attempt int) string {
 	var output bytes.Buffer
 	deviceStartCmd := command.New(emulatorPath, args...).SetStdout(&output).SetStderr(&output)
 
@@ -332,7 +263,7 @@ waitLoop:
 			failf(errorMsg)
 		case <-deviceCheckTicker.C:
 			var err error
-			serial, err = queryNewDeviceSerial(androidHome, runningDevices)
+			serial, err = adbClient.FindNewDevice(runningDevices)
 			if err != nil {
 				failf("Error: %s", err)
 			} else if serial != "" {
@@ -357,7 +288,7 @@ waitLoop:
 	timeoutTimer.Stop()
 	deviceCheckTicker.Stop()
 	if retry {
-		return startEmulator(emulatorPath, args, androidHome, runningDevices, attempt+1)
+		return startEmulator(adbClient, emulatorPath, args, androidHome, runningDevices, attempt+1)
 	}
 	return serial
 }
