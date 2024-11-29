@@ -210,7 +210,10 @@ func main() {
 	serial := startEmulator(adbClient, emulatorPath, args, androidHome, runningDevicesBeforeBoot, 1)
 
 	if cfg.DisableAnimations {
-		adbClient.DisableAnimations(serial)
+		err = adbClient.DisableAnimations(serial)
+		if err != nil {
+			failf("Failed to disable animations: %s", err)
+		}
 	}
 
 	if err := tools.ExportEnvironmentWithEnvman("BITRISE_EMULATOR_SERIAL", serial); err != nil {
