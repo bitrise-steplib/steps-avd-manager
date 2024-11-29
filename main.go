@@ -30,6 +30,7 @@ type config struct {
 	APILevel            int    `env:"api_level,required"`
 	Tag                 string `env:"tag,opt[google_apis,google_apis_playstore,aosp_atd,google_atd,android-wear,android-tv,default]"`
 	DeviceProfile       string `env:"profile,required"`
+	DisableAnimations   bool   `env:"disable_animations,opt[yes,no]"`
 	CreateCommandArgs   string `env:"create_command_flags"`
 	StartCommandArgs    string `env:"start_command_flags"`
 	ID                  string `env:"emulator_id,required"`
@@ -207,6 +208,10 @@ func main() {
 	args = append(args, startCustomFlags...)
 
 	serial := startEmulator(adbClient, emulatorPath, args, androidHome, runningDevicesBeforeBoot, 1)
+
+	if cfg.DisableAnimations {
+		adbClient.DisableAnimations(serial)
+	}
 
 	if err := tools.ExportEnvironmentWithEnvman("BITRISE_EMULATOR_SERIAL", serial); err != nil {
 		log.Warnf("Failed to export environment (BITRISE_EMULATOR_SERIAL), error: %s", err)

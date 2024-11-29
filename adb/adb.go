@@ -100,3 +100,46 @@ func (a *ADB) FindNewDevice(previousDeviceState Devices) (string, error) {
 
 	return "", nil
 }
+
+func (a *ADB) DisableAnimations(serial string) error {
+	a.logger.Println()
+	a.logger.Infof("Disabling animations for %s", serial)
+
+	adbPath := filepath.Join(a.androidHome, "platform-tools", "adb")
+
+	cmd := a.cmdFactory.Create(
+		adbPath,
+		[]string{"-s", serial, "shell", "settings", "put", "global", "window_animation_scale", "0"},
+		nil,
+	)
+	out, err := cmd.RunAndReturnTrimmedCombinedOutput()
+	if err != nil {
+		a.logger.Warnf(out)
+		a.logger.Warnf("adb window_animation_scal=0: %s", err)
+	}
+
+	cmd = a.cmdFactory.Create(
+		adbPath,
+		[]string{"-s", serial, "shell", "settings", "put", "global", "transition_animation_scale", "0"},
+		nil,
+	)
+	out, err = cmd.RunAndReturnTrimmedCombinedOutput()
+	if err != nil {
+		a.logger.Warnf(out)
+		a.logger.Warnf("adb transition_animation_scale=0: %s", err)
+	}
+
+	cmd = a.cmdFactory.Create(
+		adbPath,
+		[]string{"-s", serial, "shell", "settings", "put", "global", "animator_duration_scale", "0"},
+		nil,
+	)
+	out, err = cmd.RunAndReturnTrimmedCombinedOutput()
+	if err != nil {
+		a.logger.Warnf(out)
+		a.logger.Warnf("adb animator_duration_scale=0: %s", err)
+	}
+
+	a.logger.Println()
+	return nil
+}

@@ -50,6 +50,7 @@ You can also run this step directly with [Bitrise CLI](https://github.com/bitris
 | `api_level` | The device will run with the specified system image version. | required | `26` |
 | `tag` | Select OS tag to have the required toolset on the device. | required | `google_apis` |
 | `abi` | Select which ABI to use running the emulator. Availability depends on API level. Please use `sdkmanager --list` command to see the available ABIs. | required | `x86` |
+| `disable_animations` | Disable animations on the emulator in order to make tests faster and more stable.  Animations can be enabled/disabled from the test code too, so if your tests do need animations, set this step input to `no` and control the settings yourself. | required | `yes` |
 | `emulator_id` | Set the device's ID. (This will be the name under $HOME/.android/avd/) | required | `emulator` |
 | `create_command_flags` | Flags used when running the command to create the emulator. |  | `--sdcard 2048M` |
 | `start_command_flags` | Flags used when running the command to start the emulator. |  | `-camera-back none -camera-front none` |
