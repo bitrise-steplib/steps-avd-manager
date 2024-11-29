@@ -1,12 +1,11 @@
 package emuinstaller
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 
+	"github.com/bitrise-steplib/steps-avd-manager/test"
 	"github.com/bitrise-io/go-utils/v2/command"
 	"github.com/bitrise-io/go-utils/v2/env"
 	"github.com/stretchr/testify/require"
@@ -75,9 +74,9 @@ This program is a derivative of the QEMU CPU emulator (www.qemu.org).
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			cmdFactory := fakeCommandFactory{
-				stdout:   tt.versionOutput,
-				exitCode: 0,
+			cmdFactory := test.FakeCommandFactory{
+				Stdout:   tt.versionOutput,
+				ExitCode: 0,
 			}
 
 			installer := EmuInstaller{
@@ -154,64 +153,4 @@ func TestBackupEmuDir(t *testing.T) {
 			}
 		})
 	}
-}
-
-type fakeCommandFactory struct {
-	stdout   string
-	exitCode int
-}
-
-func (f fakeCommandFactory) Create(name string, args []string, _ *command.Opts) command.Command {
-	return fakeCommand{
-		command:  fmt.Sprintf("%s %s", name, strings.Join(args, " ")),
-		stdout:   f.stdout,
-		exitCode: f.exitCode,
-	}
-}
-
-type fakeCommand struct {
-	command  string
-	stdout   string
-	stderr   string
-	exitCode int
-}
-
-func (c fakeCommand) PrintableCommandArgs() string {
-	return c.command
-}
-
-func (c fakeCommand) Run() error {
-	if c.exitCode != 0 {
-		return fmt.Errorf("exit code %d", c.exitCode)
-	}
-	return nil
-}
-
-func (c fakeCommand) RunAndReturnExitCode() (int, error) {
-	if c.exitCode != 0 {
-		return c.exitCode, fmt.Errorf("exit code %d", c.exitCode)
-	}
-	return c.exitCode, nil
-}
-
-func (c fakeCommand) RunAndReturnTrimmedOutput() (string, error) {
-	if c.exitCode != 0 {
-		return "", fmt.Errorf("exit code %d", c.exitCode)
-	}
-	return c.stdout, nil
-}
-
-func (c fakeCommand) RunAndReturnTrimmedCombinedOutput() (string, error) {
-	if c.exitCode != 0 {
-		return "", fmt.Errorf("exit code %d", c.exitCode)
-	}
-	return fmt.Sprintf("%s%s", c.stdout, c.stderr), nil
-}
-
-func (c fakeCommand) Start() error {
-	return nil
-}
-
-func (c fakeCommand) Wait() error {
-	return nil
 }
