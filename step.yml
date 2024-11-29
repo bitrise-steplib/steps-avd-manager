@@ -110,7 +110,11 @@ inputs:
     category: Advanced
     title: Create AVD command flags
     summary: Flags used when running the command to create the emulator.
-    description: Flags used when running the command to create the emulator.
+    description: Additional flags used when running the command to create the emulator. The available options are:
+      - -a --snapshot: Place a snapshots file in the AVD, to enable persistence.
+      - -c --sdcard: Path to a shared SD card image, or size of a new sdcard for
+                     the new AVD.
+      - -p --path: Directory where the new AVD will be created.
     is_required: false
 - start_command_flags: -camera-back none -camera-front none
   opts:
