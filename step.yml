@@ -85,6 +85,19 @@ inputs:
     - armeabi-v7a
     - arm64-v8a
     - mips
+- disable_animations: "yes"
+  opts:
+    category: Advanced
+    title: Disable animations
+    summary: Disable animations on the emulator in order to make tests faster and more stable.
+    description: |-
+      Disable animations on the emulator in order to make tests faster and more stable.
+
+      Animations can be enabled/disabled from the test code too, so if your tests do need animations, set this step input to `no` and control the settings yourself.
+    is_required: true
+    value_options:
+    - "yes"
+    - "no"
 - emulator_id: emulator
   opts:
     category: Advanced
