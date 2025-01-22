@@ -220,14 +220,15 @@ func main() {
 		if err != nil {
 			failf("Failed to disable animations: %s", err)
 		}
+		log.Donef("Done")
 	}
 
 	if err := tools.ExportEnvironmentWithEnvman("BITRISE_EMULATOR_SERIAL", serial); err != nil {
 		log.Warnf("Failed to export environment (BITRISE_EMULATOR_SERIAL), error: %s", err)
 	}
-	log.Printf("- Device with serial: %s started", serial)
-
-	log.Donef("- Done")
+	log.Printf("")
+	log.Infof("Exported step output:")
+	log.Printf("$BITRISE_EMULATOR_SERIAL=%s", serial)
 }
 
 func startEmulator(adbClient adb.ADB, emulatorPath string, args []string, androidHome string, runningDevices map[string]string, attempt int) string {
