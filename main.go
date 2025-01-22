@@ -8,7 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/bitrise-io/go-android/sdk"
+	"github.com/bitrise-io/go-android/v2/adbmanager"
+	"github.com/bitrise-io/go-android/v2/sdk"
 	"github.com/bitrise-io/go-steputils/stepconf"
 	"github.com/bitrise-io/go-steputils/tools"
 	"github.com/bitrise-io/go-utils/command"
@@ -26,7 +27,6 @@ import (
 
 type config struct {
 	AndroidHome         string `env:"ANDROID_HOME"`
-	AndroidSDKRoot      string `env:"ANDROID_SDK_ROOT"`
 	APILevel            int    `env:"api_level,required"`
 	Tag                 string `env:"tag,opt[google_apis,google_apis_playstore,aosp_atd,google_atd,android-wear,android-tv,default]"`
 	DeviceProfile       string `env:"profile,required"`
@@ -95,16 +95,12 @@ func main() {
 
 	// Initialize Android SDK
 	log.Infof("Initialize Android SDK")
-	androidSdk, err := sdk.NewDefaultModel(sdk.Environment{
-		AndroidHome:    cfg.AndroidHome,
-		AndroidSDKRoot: cfg.AndroidSDKRoot,
-	})
+	androidSdk, err := sdk.New(cfg.AndroidHome)
 	if err != nil {
 		failf("Failed to initialize Android SDK: %s", err)
 	}
 
-	androidHome := androidSdk.GetAndroidHome()
-	adbClient := adb.New(androidHome, cmdFactory, logger)
+	adbClient := adb.New(cfg.AndroidHome, cmdFactory, logger)
 	runningDevicesBeforeBoot, err := adbClient.Devices()
 	if err != nil {
 		failf("Failed to check running devices, error: %s", err)
@@ -118,7 +114,7 @@ func main() {
 	var (
 		sdkManagerPath = filepath.Join(cmdlineToolsPath, "sdkmanager")
 		avdManagerPath = filepath.Join(cmdlineToolsPath, "avdmanager")
-		emulatorPath   = filepath.Join(androidHome, "emulator", "emulator")
+		emulatorPath   = filepath.Join(cfg.AndroidHome, "emulator", "emulator")
 
 		pkg     = fmt.Sprintf("system-images;android-%d;%s;%s", cfg.APILevel, cfg.Tag, cfg.Abi)
 		yes, no = strings.Repeat("yes\n", 20), strings.Repeat("no\n", 20)
@@ -136,7 +132,7 @@ func main() {
 
 	if cfg.EmulatorBuildNumber != emuBuildNumberPreinstalled {
 		httpClient := retryhttp.NewClient(logger)
-		emuInstaller := emuinstaller.NewEmuInstaller(androidHome, cmdFactory, logger, httpClient)
+		emuInstaller := emuinstaller.NewEmuInstaller(cfg.AndroidHome, cmdFactory, logger, httpClient)
 		if err := emuInstaller.Install(cfg.EmulatorBuildNumber); err != nil {
 			failf("Failed to install emulator build %s: %s", cfg.EmulatorBuildNumber, err)
 		}
@@ -207,9 +203,19 @@ func main() {
 	}
 	args = append(args, startCustomFlags...)
 
-	serial := startEmulator(adbClient, emulatorPath, args, androidHome, runningDevicesBeforeBoot, 1)
+	serial := startEmulator(adbClient, emulatorPath, args, cfg.AndroidHome, runningDevicesBeforeBoot, 1)
 
 	if cfg.DisableAnimations {
+		adb, err := adbmanager.New(androidSdk, cmdFactory, logger)
+		if err != nil {
+			failf("Failed to create ADB model: %s", err)
+		}
+		err = adb.WaitForDevice(serial, bootTimeout)
+		if err != nil {
+			// TODO
+			failf("Failed to wait for device: %s", err)
+		}
+
 		err = adbClient.DisableAnimations(serial)
 		if err != nil {
 			failf("Failed to disable animations: %s", err)
