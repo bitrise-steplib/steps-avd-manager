@@ -10,12 +10,11 @@ import (
 
 	"github.com/bitrise-io/go-android/v2/adbmanager"
 	"github.com/bitrise-io/go-android/v2/sdk"
-	"github.com/bitrise-io/go-steputils/stepconf"
-	"github.com/bitrise-io/go-steputils/tools"
-	"github.com/bitrise-io/go-utils/command"
+	"github.com/bitrise-io/go-steputils/v2/export"
+	"github.com/bitrise-io/go-steputils/v2/stepconf"
 	"github.com/bitrise-io/go-utils/log"
 	"github.com/bitrise-io/go-utils/sliceutil"
-	v2command "github.com/bitrise-io/go-utils/v2/command"
+	"github.com/bitrise-io/go-utils/v2/command"
 	"github.com/bitrise-io/go-utils/v2/env"
 	v2log "github.com/bitrise-io/go-utils/v2/log"
 	"github.com/bitrise-io/go-utils/v2/retryhttp"
@@ -67,7 +66,7 @@ func failf(msg string, args ...interface{}) {
 
 type phase struct {
 	name    string
-	command *command.Model
+	command command.Command
 }
 
 func validateConfig(cfg config) error {
@@ -79,11 +78,12 @@ func validateConfig(cfg config) error {
 }
 
 func main() {
-	cmdFactory := v2command.NewFactory(env.NewRepository())
+	envRepo := env.NewRepository()
+	cmdFactory := command.NewFactory(envRepo)
 	logger := v2log.NewLogger()
 
 	var cfg config
-	if err := stepconf.Parse(&cfg); err != nil {
+	if err := stepconf.NewInputParser(envRepo).Parse(&cfg); err != nil {
 		failf("Couldn't parse step inputs: %s", err)
 	}
 	stepconf.Print(cfg)
@@ -141,14 +141,19 @@ func main() {
 	var (
 		systemImageChannel = "0"
 		phases             []phase
+		// hitting yes in case it waits for accepting license
+		yesPipeCmdOpts = command.Opts{Stdin: strings.NewReader(yes)}
 	)
 	if cfg.EmulatorChannel != emuChannelNoUpdate {
 		systemImageChannel = cfg.EmulatorChannel
 		phases = append(phases,
 			phase{
 				"Updating emulator",
-				command.New(sdkManagerPath, "--verbose", "--channel="+cfg.EmulatorChannel, "emulator").
-					SetStdin(strings.NewReader(yes)), // hitting yes in case it waits for accepting license
+				cmdFactory.Create(
+					sdkManagerPath,
+					[]string{"--verbose", "--channel=" + cfg.EmulatorChannel, "emulator"},
+					&yesPipeCmdOpts,
+				),
 			},
 		)
 	}
@@ -156,19 +161,21 @@ func main() {
 	phases = append(phases, []phase{
 		{
 			"Installing system image package",
-			command.New(sdkManagerPath, "--verbose", "--channel="+systemImageChannel, pkg).
-				SetStdin(strings.NewReader(yes)), // hitting yes in case it waits for accepting license
+			cmdFactory.Create(sdkManagerPath, []string{"--verbose", "--channel=" + systemImageChannel, pkg}, &yesPipeCmdOpts),
 		},
 		{
 			"Creating device",
-			command.New(avdManagerPath, append([]string{
-				"--verbose", "create", "avd", "--force",
-				"--name", cfg.ID,
-				"--device", cfg.DeviceProfile,
-				"--package", pkg,
-				"--tag", cfg.Tag,
-				"--abi", cfg.Abi}, createCustomFlags...)...).
-				SetStdin(strings.NewReader(no)), // hitting no in case it asks for creating hw profile
+			cmdFactory.Create(
+				avdManagerPath,
+				append([]string{
+					"--verbose", "create", "avd", "--force",
+					"--name", cfg.ID,
+					"--device", cfg.DeviceProfile,
+					"--package", pkg,
+					"--tag", cfg.Tag,
+					"--abi", cfg.Abi,
+				}, createCustomFlags...),
+				&yesPipeCmdOpts),
 		},
 	}...)
 
@@ -203,7 +210,7 @@ func main() {
 	}
 	args = append(args, startCustomFlags...)
 
-	serial := startEmulator(adbClient, emulatorPath, args, cfg.AndroidHome, runningDevicesBeforeBoot, 1)
+	serial := startEmulator(cmdFactory, adbClient, emulatorPath, args, cfg.AndroidHome, runningDevicesBeforeBoot, 1)
 
 	if cfg.DisableAnimations {
 		adb, err := adbmanager.New(androidSdk, cmdFactory, logger)
@@ -222,7 +229,9 @@ func main() {
 		}
 	}
 
-	if err := tools.ExportEnvironmentWithEnvman("BITRISE_EMULATOR_SERIAL", serial); err != nil {
+	exporter := export.NewExporter(cmdFactory)
+	err = exporter.ExportOutput("BITRISE_EMULATOR_SERIAL", serial)
+	if err != nil {
 		log.Warnf("Failed to export environment (BITRISE_EMULATOR_SERIAL), error: %s", err)
 	}
 	log.Printf("- Device with serial: %s started", serial)
@@ -230,9 +239,21 @@ func main() {
 	log.Donef("- Done")
 }
 
-func startEmulator(adbClient adb.ADB, emulatorPath string, args []string, androidHome string, runningDevices map[string]string, attempt int) string {
+func startEmulator(
+	cmdFactory command.Factory,
+	adbClient adb.ADB,
+	emulatorPath string,
+	args []string,
+	androidHome string,
+	runningDevices map[string]string,
+	attempt int,
+) string {
 	var output bytes.Buffer
-	deviceStartCmd := command.New(emulatorPath, args...).SetStdout(&output).SetStderr(&output)
+	startCmdOpts := command.Opts {
+		Stdout: &output,
+		Stderr: &output,
+	}
+	deviceStartCmd := cmdFactory.Create(emulatorPath, args, &startCmdOpts)
 
 	log.Infof("Starting device")
 	log.Donef("$ %s", deviceStartCmd.PrintableCommandArgs())
@@ -242,13 +263,13 @@ func startEmulator(adbClient adb.ADB, emulatorPath string, args []string, androi
 	// 1. One that waits for the emulator process to exit
 	// 2. A boot timeout timer
 	// 3. A ticker that periodically checks if the device has become online
-	if err := deviceStartCmd.GetCmd().Start(); err != nil {
+	if err := deviceStartCmd.Start(); err != nil {
 		failf("Failed to run device start command: %v", err)
 	}
 
 	emulatorWaitCh := make(chan error, 1)
 	go func() {
-		emulatorWaitCh <- deviceStartCmd.GetCmd().Wait()
+		emulatorWaitCh <- deviceStartCmd.Wait()
 	}()
 
 	timeoutTimer := time.NewTimer(bootTimeout)
@@ -286,7 +307,8 @@ waitLoop:
 			if containsAny(output.String(), faultIndicators) {
 				log.Warnf("Emulator log contains fault")
 				log.Warnf("Emulator log: %s", output)
-				if err := deviceStartCmd.GetCmd().Process.Kill(); err != nil {
+				// TODO: Process is not exposed from go-utils/command yet
+				if err := deviceStartCmd.Process.Kill(); err != nil {
 					failf("Couldn't finish emulator process: %v", err)
 				}
 				if attempt < maxBootAttempts {
