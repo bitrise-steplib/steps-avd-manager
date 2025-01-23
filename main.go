@@ -206,14 +206,14 @@ func main() {
 	serial := startEmulator(adbClient, emulatorPath, args, cfg.AndroidHome, runningDevicesBeforeBoot, 1)
 
 	if cfg.DisableAnimations {
+		// We need to wait for the device to boot before we can disable animations
 		adb, err := adbmanager.New(androidSdk, cmdFactory, logger)
 		if err != nil {
 			failf("Failed to create ADB model: %s", err)
 		}
 		err = adb.WaitForDevice(serial, bootTimeout)
 		if err != nil {
-			// TODO
-			failf("Failed to wait for device: %s", err)
+			failf(err.Error())
 		}
 
 		err = adbClient.DisableAnimations(serial)
@@ -227,7 +227,7 @@ func main() {
 		log.Warnf("Failed to export environment (BITRISE_EMULATOR_SERIAL), error: %s", err)
 	}
 	log.Printf("")
-	log.Infof("Exported step output:")
+	log.Infof("Step outputs")
 	log.Printf("$BITRISE_EMULATOR_SERIAL=%s", serial)
 }
 
