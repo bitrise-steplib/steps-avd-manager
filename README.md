@@ -19,9 +19,7 @@ Run instrumented and UI tests on a virtual Android device. Once some basic input
 
 Some system images are pre-installed on the virtual machines. In this case the step won't have to spend time downloading the requested image. To check the list of pre-installed images for each stack, visit the [system reports](https://stacks.bitrise.io).
 
-### Troubleshooting
-The emulator needs some time to boot up. The earlier you place the Step in your Workflow, the more tasks, such as cloning or caching, you can complete in your Workflow before the emulator starts working.
-We recommend that you also add **Wait for Android emulator** Step to your Workflow as it acts as a shield preventing the AVD Manager to kick in too early. Make sure you add the **Wait for Android emulator** Step BEFORE the Step with which you want to use the **AVD Manager**.
+By default, the Step waits for the emulator to boot up and disables system animations in order to make tests faster and more reliable. If you want to disable these, set the **Disable animations** input to `no`. In this case, make sure to add the [Wait for Android emulator Step](https://github.com/bitrise-steplib/steps-wait-for-android-emulator) to the right part of your workflow.
 
 ### Useful links
 - [Getting started with Android apps](https://devcenter.bitrise.io/getting-started/getting-started-with-android-apps/)
@@ -50,7 +48,7 @@ You can also run this step directly with [Bitrise CLI](https://github.com/bitris
 | `api_level` | The device will run with the specified system image version. | required | `26` |
 | `tag` | Select OS tag to have the required toolset on the device. | required | `google_apis` |
 | `abi` | Select which ABI to use running the emulator. Availability depends on API level. Please use `sdkmanager --list` command to see the available ABIs. | required | `x86` |
-| `disable_animations` | Disable animations on the emulator in order to make tests faster and more stable.  Animations can be enabled/disabled from the test code too, so if your tests do need animations, set this step input to `no` and control the settings yourself. | required | `yes` |
+| `disable_animations` | Disable animations on the emulator in order to make tests faster and more stable.  Note: when this input is `yes`, the step will pause and wait for the device to boot up.  Animations can be enabled/disabled from the test code too, so if your tests do need animations, set this step input to `no` and control the settings yourself. | required | `yes` |
 | `emulator_id` | Set the device's ID. (This will be the name under $HOME/.android/avd/) | required | `emulator` |
 | `create_command_flags` | Flags used when running the command to create the emulator. |  | `--sdcard 2048M` |
 | `start_command_flags` | Flags used when running the command to start the emulator. |  | `-camera-back none -camera-front none` |
