@@ -154,6 +154,10 @@ func main() {
 	}
 
 	avdmanagerTag := cfg.Tag
+	// The tag passed to avdmanager is different when using 16kb page size images. Otherwise it fails with:
+	// > Error: Invalid --tag google_apis_ps16k for the selected package. Valid tags are:
+	// > page_size_16kb
+	// > null
 	if avdmanagerTag == "google_apis_ps16k" || avdmanagerTag == "google_apis_playstore_ps16k" {
 		avdmanagerTag = "page_size_16kb"
 	}
