@@ -153,6 +153,10 @@ func main() {
 		)
 	}
 
+	avdmanagerTag := cfg.Tag
+	if avdmanagerTag == "google_apis_ps16k" || avdmanagerTag == "google_apis_playstore_ps16k" {
+		avdmanagerTag = "page_size_16kb"
+	}
 	phases = append(phases, []phase{
 		{
 			"Installing system image package",
@@ -166,7 +170,7 @@ func main() {
 				"--name", cfg.ID,
 				"--device", cfg.DeviceProfile,
 				"--package", pkg,
-				"--tag", cfg.Tag,
+				"--tag", avdmanagerTag,
 				"--abi", cfg.Abi}, createCustomFlags...)...).
 				SetStdin(strings.NewReader(no)), // hitting no in case it asks for creating hw profile
 		},
