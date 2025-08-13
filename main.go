@@ -28,7 +28,7 @@ import (
 type config struct {
 	AndroidHome         string `env:"ANDROID_HOME"`
 	APILevel            int    `env:"api_level,required"`
-	Tag                 string `env:"tag,opt[google_apis,google_apis_playstore,aosp_atd,google_atd,android-wear,android-tv,default]"`
+	Tag                 string `env:"tag,opt[google_apis,google_apis_ps16k,google_apis_playstore,google_apis_playstore_ps16k,aosp_atd,google_atd,android-wear,android-tv,default]"`
 	DeviceProfile       string `env:"profile,required"`
 	DisableAnimations   bool   `env:"disable_animations,opt[yes,no]"`
 	CreateCommandArgs   string `env:"create_command_flags"`
@@ -153,6 +153,14 @@ func main() {
 		)
 	}
 
+	avdmanagerTag := cfg.Tag
+	// The tag passed to avdmanager is different when using 16kb page size images. Otherwise it fails with:
+	// > Error: Invalid --tag google_apis_ps16k for the selected package. Valid tags are:
+	// > page_size_16kb
+	// > null
+	if avdmanagerTag == "google_apis_ps16k" || avdmanagerTag == "google_apis_playstore_ps16k" {
+		avdmanagerTag = "page_size_16kb"
+	}
 	phases = append(phases, []phase{
 		{
 			"Installing system image package",
@@ -166,7 +174,7 @@ func main() {
 				"--name", cfg.ID,
 				"--device", cfg.DeviceProfile,
 				"--package", pkg,
-				"--tag", cfg.Tag,
+				"--tag", avdmanagerTag,
 				"--abi", cfg.Abi}, createCustomFlags...)...).
 				SetStdin(strings.NewReader(no)), // hitting no in case it asks for creating hw profile
 		},
