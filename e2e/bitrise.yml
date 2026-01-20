@@ -133,7 +133,7 @@ workflows:
         inputs:
         - gradle_file: ./_tmp/build.gradle
         - gradle_task: connectedDebugAndroidTest
-        - gradlew_path: ./_tmp/gradlew
+        - build_root_directory: ./_tmp/gradlew
         - app_file_include_filter: dontexport
         - test_apk_file_include_filter: dontexport
     - script:
