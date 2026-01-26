@@ -72,7 +72,7 @@ workflows:
     - EMU_VER: 34
     - PROFILE: 31
     - ABI: x86_64
-    - TAG: google_apis_ps16k
+    - TAG: google_apis_playstore
     - EMU_BUILD_NUMBER: preinstalled
     after_run:
     - _start-emulator
