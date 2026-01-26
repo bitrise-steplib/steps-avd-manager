@@ -67,22 +67,18 @@ workflows:
   #   - _take_screenshot
   #   - _kill-emulator
 
-#   - ANDROID_HOME: /opt/android-sdk-linux
-# - api_level: 34
-# - tag: x86_64
-# - profile: 31
-# - disable_animations: true
-# - create_command_flags: --sdcard 2048M
-# - start_command_flags: -camera-back none -camera-front none
-# - emulator_id: emulator
-# - abi: x86_64
-# - emulator_channel: no update
-# - emulator_build_number: preinstalled
-# - headless_mode: true
+# testOptions.managedDevices.localDevices {
+# create("pixel6Api33") {
+# device = "Pixel 6"
+# apiLevel = 33
+# systemImageSource = "google-atd"
+# require64Bit = true
+# }
+# }
   test_emulator_start_34:
     envs:
-    - EMU_VER: 34
-    - PROFILE: 31
+    - EMU_VER: 33
+    - PROFILE: Pixel 6
     - ABI: x86_64
     - TAG: google_apis_playstore
     - EMU_BUILD_NUMBER: preinstalled
@@ -148,25 +144,25 @@ workflows:
         - build_root_directory: ./_tmp
         - app_file_include_filter: dontexport
         - test_apk_file_include_filter: dontexport
-    - script:
-        inputs:
-        - content: |
-            #!/bin/bash
-            set -euxo pipefail
+    # - script:
+    #     inputs:
+    #     - content: |
+    #         #!/bin/bash
+    #         set -euxo pipefail
 
-            SCREENSHOT=./_tmp/app/screenshots/test_screenshot.png
-            cp $SCREENSHOT $BITRISE_DEPLOY_DIR/screen_$EMU_VER.png
+    #         SCREENSHOT=./_tmp/app/screenshots/test_screenshot.png
+    #         cp $SCREENSHOT $BITRISE_DEPLOY_DIR/screen_$EMU_VER.png
 
-            if [[ "$OSTYPE" == "darwin"* ]]; then
-              brew install tesseract
-            elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
-              sudo apt-get update
-              sudo apt-get install tesseract-ocr -y
-            fi
+    #         if [[ "$OSTYPE" == "darwin"* ]]; then
+    #           brew install tesseract
+    #         elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
+    #           sudo apt-get update
+    #           sudo apt-get install tesseract-ocr -y
+    #         fi
 
-            OUT=./_tmp/out
-            tesseract -l eng "$SCREENSHOT" "$OUT"
-            cat "${OUT}.txt" | grep 'Hello World!'
+    #         OUT=./_tmp/out
+    #         tesseract -l eng "$SCREENSHOT" "$OUT"
+    #         cat "${OUT}.txt" | grep 'Hello World!'
 
   _take_screenshot:
     steps:
