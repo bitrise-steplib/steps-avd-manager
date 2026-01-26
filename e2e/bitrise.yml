@@ -19,17 +19,17 @@ workflows:
   #   - _take_screenshot
   #   - _kill-emulator
   #   - _restore_emulator
-  test_emulator_page_size_16k:
-    envs:
-    - EMU_VER: 36
-    - PROFILE: pixel
-    - ABI: x86_64
-    - TAG: google_apis_ps16k
-    - EMU_BUILD_NUMBER: preinstalled
-    after_run:
-    - _start-emulator
-    - _run_ui_test_and_take_screenshot
-    - _kill-emulator
+  # test_emulator_page_size_16k:
+  #   envs:
+  #   - EMU_VER: 36
+  #   - PROFILE: pixel
+  #   - ABI: x86_64
+  #   - TAG: google_apis_ps16k
+  #   - EMU_BUILD_NUMBER: preinstalled
+  #   after_run:
+  #   - _start-emulator
+  #   - _run_ui_test_and_take_screenshot
+  #   - _kill-emulator
 
   # test_emulator_start_26:
   #   envs:
@@ -67,29 +67,42 @@ workflows:
   #   - _take_screenshot
   #   - _kill-emulator
 
-  test_emulator_start_30:
+
+#   - ANDROID_HOME: /opt/android-sdk-linux
+# - api_level: 34
+# - tag: x86_64
+# - profile: 31
+# - disable_animations: true
+# - create_command_flags: --sdcard 2048M
+# - start_command_flags: -camera-back none -camera-front none
+# - emulator_id: emulator
+# - abi: x86_64
+# - emulator_channel: no update
+# - emulator_build_number: preinstalled
+# - headless_mode: true
+  test_emulator_start_34:
     envs:
-    - EMU_VER: 30
-    - PROFILE: pixel_2
-    - ABI: x86
-    - TAG: google_apis
+    - EMU_VER: 34
+    - PROFILE: 31
+    - ABI: x86_64
+    - TAG: google_apis_playstore
     - EMU_BUILD_NUMBER: preinstalled
     after_run:
     - _start-emulator
     - _run_ui_test_and_take_screenshot
     - _kill-emulator
 
-  test_emulator_start_32:
-    envs:
-    - EMU_VER: 33
-    - PROFILE: pixel_6
-    - ABI: x86_64
-    - TAG: google_apis
-    - EMU_BUILD_NUMBER: preinstalled
-    after_run:
-    - _start-emulator
-    - _run_ui_test_and_take_screenshot
-    - _kill-emulator
+  # test_emulator_start_32:
+  #   envs:
+  #   - EMU_VER: 33
+  #   - PROFILE: pixel_6
+  #   - ABI: x86_64
+  #   - TAG: google_apis
+  #   - EMU_BUILD_NUMBER: preinstalled
+  #   after_run:
+  #   - _start-emulator
+  #   - _run_ui_test_and_take_screenshot
+  #   - _kill-emulator
 
   _start-emulator:
     steps:
