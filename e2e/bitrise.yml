@@ -105,6 +105,7 @@ workflows:
         - abi: $ABI
         - tag: $TAG
         - emulator_build_number: $EMU_BUILD_NUMBER
+        - start_command_flags: "-camera-back none -camera-front none -wipe-data"
     - script:
         inputs:
         - content: |
