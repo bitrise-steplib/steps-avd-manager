@@ -79,7 +79,7 @@ workflows:
     envs:
     - EMU_VER: 33
     - PROFILE: Pixel 6
-    - ABI: x86_64
+    - ABI: x86
     - TAG: google_apis_playstore
     - EMU_BUILD_NUMBER: preinstalled
     after_run:
