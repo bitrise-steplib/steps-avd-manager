@@ -77,7 +77,7 @@ workflows:
     steps:
     - set-java-version:
         inputs:
-        - java_version: 21
+        - set_java_version: 21
     after_run:
     - _start-emulator
     - _run_ui_test_and_take_screenshot
