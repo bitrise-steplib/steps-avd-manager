@@ -74,6 +74,10 @@ workflows:
     - ABI: x86_64
     - TAG: google_apis_playstore
     - EMU_BUILD_NUMBER: preinstalled
+    before_run:
+    - set_java_version:
+        inputs:
+        - java_version: 21
     after_run:
     - _start-emulator
     - _run_ui_test_and_take_screenshot
