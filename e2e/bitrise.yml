@@ -67,7 +67,6 @@ workflows:
   #   - _take_screenshot
   #   - _kill-emulator
 
-
 #   - ANDROID_HOME: /opt/android-sdk-linux
 # - api_level: 34
 # - tag: x86_64
