@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"time"
 
@@ -14,7 +15,6 @@ import (
 	"github.com/bitrise-io/go-steputils/tools"
 	"github.com/bitrise-io/go-utils/command"
 	"github.com/bitrise-io/go-utils/log"
-	"github.com/bitrise-io/go-utils/sliceutil"
 	v2command "github.com/bitrise-io/go-utils/v2/command"
 	"github.com/bitrise-io/go-utils/v2/env"
 	v2log "github.com/bitrise-io/go-utils/v2/log"
@@ -203,7 +203,7 @@ func main() {
 		"-no-snapshot",
 		"-wipe-data",
 	}
-	if !sliceutil.IsStringInSlice("-gpu", startCustomFlags) {
+	if !slices.Contains(startCustomFlags, "-gpu") {
 		args = append(args, []string{"-gpu", "auto"}...)
 	}
 	if cfg.IsHeadlessMode {
