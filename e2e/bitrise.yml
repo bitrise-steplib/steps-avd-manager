@@ -31,18 +31,6 @@ workflows:
     - _take_screenshot
     - _kill-emulator
 
-  test_emulator_start_26:
-    envs:
-    - EMU_VER: 26
-    - PROFILE: pixel
-    - ABI: x86
-    - TAG: google_apis
-    - EMU_BUILD_NUMBER: preinstalled
-    after_run:
-    - _start-emulator
-    - _take_screenshot
-    - _kill-emulator
-
   test_emulator_start_28:
     envs:
     - EMU_VER: 28
