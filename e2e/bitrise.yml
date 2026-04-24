@@ -131,7 +131,7 @@ workflows:
         - branch: $TEST_APP_BRANCH
     - gradle-runner:
         inputs:
-        - gradle_file: ./_tmp/build.gradle
+        - build_root_directory: ./_tmp
         - gradle_task: connectedDebugAndroidTest
         - gradlew_path: ./_tmp/gradlew
         - app_file_include_filter: dontexport
