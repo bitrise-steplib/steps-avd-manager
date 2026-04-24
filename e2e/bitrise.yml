@@ -121,7 +121,7 @@ workflows:
         inputs:
         - build_root_directory: ./_tmp
         - gradle_task: connectedDebugAndroidTest
-        - gradlew_path: ./_tmp/gradlew
+        - gradlew_path: ./gradlew
         - app_file_include_filter: dontexport
         - test_apk_file_include_filter: dontexport
     - script:
