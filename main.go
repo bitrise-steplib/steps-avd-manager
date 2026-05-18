@@ -211,7 +211,7 @@ func main() {
 	}
 	args = append(args, startCustomFlags...)
 
-	serial := startEmulator(adbClient, emulatorPath, args, cfg.AndroidHome, runningDevicesBeforeBoot, 1)
+	serial := startEmulator(adbClient, emulatorPath, args, runningDevicesBeforeBoot, 1)
 
 	if cfg.DisableAnimations {
 		// We need to wait for the device to boot before we can disable animations
@@ -239,7 +239,7 @@ func main() {
 	log.Printf("$BITRISE_EMULATOR_SERIAL=%s", serial)
 }
 
-func startEmulator(adbClient adb.ADB, emulatorPath string, args []string, androidHome string, runningDevices map[string]string, attempt int) string {
+func startEmulator(adbClient adb.ADB, emulatorPath string, args []string, runningDevices map[string]string, attempt int) string {
 	var output bytes.Buffer
 	deviceStartCmd := command.New(emulatorPath, args...).SetStdout(&output).SetStderr(&output)
 
@@ -311,7 +311,7 @@ waitLoop:
 	timeoutTimer.Stop()
 	deviceCheckTicker.Stop()
 	if retry {
-		return startEmulator(adbClient, emulatorPath, args, androidHome, runningDevices, attempt+1)
+		return startEmulator(adbClient, emulatorPath, args, runningDevices, attempt+1)
 	}
 	return serial
 }

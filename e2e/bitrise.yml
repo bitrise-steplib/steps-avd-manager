@@ -13,7 +13,7 @@ workflows:
     - PROFILE: pixel
     - ABI: x86_64
     - TAG: google_apis
-    - EMU_BUILD_NUMBER: 12325540  # 35.1.21
+    - EMU_BUILD_NUMBER: 12325540 # 35.1.21
     after_run:
     - _start-emulator
     - _take_screenshot
@@ -102,7 +102,7 @@ workflows:
             else
               exit 1
             fi
-    - wait-for-android-emulator: { }
+    - wait-for-android-emulator: {}
 
   _run_ui_test_and_take_screenshot:
     steps:

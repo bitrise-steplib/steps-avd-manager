@@ -1,14 +1,17 @@
 format_version: "11"
 default_step_lib_source: https://github.com/bitrise-io/bitrise-steplib.git
 
+include:
+- repository: steps-check
+  branch: master
+  path: steps.bitrise.yml
+
 workflows:
+  # check: included from steps-check/steps.bitrise.yml
+
   generate_readme:
     steps:
-    - git::https://github.com/bitrise-steplib/steps-readme-generator.git@main: { }
-
-  check:
-    steps:
-    - git::https://github.com/bitrise-steplib/steps-check.git: { }
+    - git::https://github.com/bitrise-steplib/steps-readme-generator.git@main: {}
 
   e2e:
     steps:
@@ -25,4 +28,4 @@ workflows:
         inputs:
         - profile: pixel_2
         - api_level: 30
-    - wait-for-android-emulator: { }
+    - wait-for-android-emulator: {}
