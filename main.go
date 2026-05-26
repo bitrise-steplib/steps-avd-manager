@@ -26,18 +26,20 @@ import (
 )
 
 type config struct {
-	AndroidHome         string `env:"ANDROID_HOME"`
-	APILevel            int    `env:"api_level,required"`
-	Tag                 string `env:"tag,opt[google_apis,google_apis_ps16k,google_apis_playstore,google_apis_playstore_ps16k,aosp_atd,google_atd,android-wear,android-tv,default]"`
-	DeviceProfile       string `env:"profile,required"`
-	DisableAnimations   bool   `env:"disable_animations,opt[yes,no]"`
-	CreateCommandArgs   string `env:"create_command_flags"`
-	StartCommandArgs    string `env:"start_command_flags"`
-	ID                  string `env:"emulator_id,required"`
-	Abi                 string `env:"abi,opt[x86,armeabi-v7a,arm64-v8a,x86_64]"`
-	EmulatorChannel     string `env:"emulator_channel,opt[no update,0,1,2,3]"`
-	EmulatorBuildNumber string `env:"emulator_build_number,required"`
-	IsHeadlessMode      bool   `env:"headless_mode,opt[yes,no]"`
+	AndroidHome                string `env:"ANDROID_HOME"`
+	DeployDir                  string `env:"BITRISE_DEPLOY_DIR"`
+	APILevel                   int    `env:"api_level,required"`
+	Tag                        string `env:"tag,opt[google_apis,google_apis_ps16k,google_apis_playstore,google_apis_playstore_ps16k,aosp_atd,google_atd,android-wear,android-tv,default]"`
+	DeviceProfile              string `env:"profile,required"`
+	DisableAnimations          bool   `env:"disable_animations,opt[yes,no]"`
+	CreateCommandArgs          string `env:"create_command_flags"`
+	StartCommandArgs           string `env:"start_command_flags"`
+	ID                         string `env:"emulator_id,required"`
+	Abi                        string `env:"abi,opt[x86,armeabi-v7a,arm64-v8a,x86_64]"`
+	EmulatorChannel            string `env:"emulator_channel,opt[no update,0,1,2,3]"`
+	EmulatorBuildNumber        string `env:"emulator_build_number,required"`
+	IsHeadlessMode             bool   `env:"headless_mode,opt[yes,no]"`
+	DebugTags                  string `env:"debug_tags"`
 }
 
 var (
@@ -208,6 +210,10 @@ func main() {
 	}
 	if cfg.IsHeadlessMode {
 		args = append(args, []string{"-no-window", "-no-boot-anim"}...)
+	}
+	if cfg.DebugTags != "" {
+		logcatPath := filepath.Join(cfg.DeployDir, cfg.ID+"_device.log")
+		args = append(args, "-debug", cfg.DebugTags, "-logcat-output", logcatPath)
 	}
 	args = append(args, startCustomFlags...)
 

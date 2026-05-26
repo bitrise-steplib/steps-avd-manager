@@ -169,6 +169,18 @@ inputs:
     value_options:
     - "yes"
     - "no"
+- debug_tags: ""
+  opts:
+    category: Debugging
+    title: Emulator debug tags
+    summary: Comma-separated list of emulator debug tags. When set, the emulator is launched with `-debug <tags>` and its device logcat is captured to `$BITRISE_DEPLOY_DIR/<emulator_id>_device.log`.
+    description: |-
+      Comma-separated list of emulator debug tags (e.g. `init,avd,kernel` or `all`). Passed to the emulator as `-debug <tags>`.
+
+      When this input is non-empty, the emulator is also started with `-logcat-output` pointing to `$BITRISE_DEPLOY_DIR/<emulator_id>_device.log`, so the device-side logcat stream is captured to a file deployed as a build artifact. The file is written by the emulator process directly, so logs are preserved even if the device never becomes reachable via `adb`.
+
+      Leave empty to disable. Run `emulator -help-debug-tags` locally to see the full list of available tags.
+    is_required: false
 
 outputs:
 - BITRISE_EMULATOR_SERIAL:

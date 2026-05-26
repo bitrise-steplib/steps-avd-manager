@@ -7,6 +7,76 @@ app:
   - TEST_APP_BRANCH: main
 
 workflows:
+  test_emulator_basic:
+    envs:
+    - EMU_VER: 34
+    - PROFILE: pixel
+    - ABI: x86_64
+    - TAG: google_apis
+    - EMU_BUILD_NUMBER: preinstalled
+    after_run:
+    - _start-emulator
+    - _export_emulator_logs
+    - _kill-emulator
+
+  test_emulator_full_config:
+    envs:
+    - EMU_VER: 32
+    steps:
+    - path::./:
+        title: AVD Manager
+        inputs:
+        - api_level: 32
+        - tag: google_apis
+        - profile: pixel_3_xl
+        - abi: x86_64
+        - disable_animations: "true"
+        - create_command_flags: --sdcard 2048M
+        - start_command_flags: -memory 2048
+        - emulator_id: emulator
+        - emulator_channel: no update
+        - emulator_build_number: preinstalled
+        - headless_mode: "true"
+    - wait-for-android-emulator: {}
+    - script:
+        is_always_run: true
+        title: Export emulator logcat
+        inputs:
+        - content: |
+            #!/bin/bash
+            set -uxo pipefail
+            $ANDROID_HOME/platform-tools/adb -s "$BITRISE_EMULATOR_SERIAL" logcat -d > "$BITRISE_DEPLOY_DIR/emulator_logcat_$EMU_VER.log"
+
+  test_emulator_debug_tags_init:
+    envs:
+    - EMU_VER: 34
+    - PROFILE: pixel
+    - ABI: x86_64
+    - TAG: google_apis
+    - EMU_BUILD_NUMBER: preinstalled
+    steps:
+    - path::./:
+        title: AVD Manager
+        inputs:
+        - api_level: $EMU_VER
+        - tag: $TAG
+        - profile: $PROFILE
+        - abi: $ABI
+        - emulator_build_number: $EMU_BUILD_NUMBER
+        - debug_tags: init
+    - wait-for-android-emulator: {}
+    - script:
+        is_always_run: true
+        title: Verify device logcat artifact exists
+        inputs:
+        - content: |
+            #!/bin/bash
+            set -euxo pipefail
+            LOG_FILE="$BITRISE_DEPLOY_DIR/emulator_device.log"
+            test -s "$LOG_FILE"
+    after_run:
+    - _kill-emulator
+
   test_emulator_custom_build_number:
     envs:
     - EMU_VER: 34
