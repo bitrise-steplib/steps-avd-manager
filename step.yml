@@ -30,6 +30,7 @@ support_url: https://github.com/bitrise-steplib/steps-avd-manager/issues
 
 type_tags:
 - test
+- security
 
 is_always_run: false
 is_skippable: false
