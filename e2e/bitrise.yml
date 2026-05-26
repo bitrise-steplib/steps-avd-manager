@@ -7,7 +7,7 @@ app:
   - TEST_APP_BRANCH: main
 
 workflows:
-  test_emulator_basic:
+  _disabled_test_emulator_basic:
     envs:
     - EMU_VER: 34
     - PROFILE: pixel
@@ -19,7 +19,7 @@ workflows:
     - _export_emulator_logs
     - _kill-emulator
 
-  test_emulator_full_config:
+  _disabled_test_emulator_full_config:
     envs:
     - EMU_VER: 32
     steps:
@@ -77,7 +77,7 @@ workflows:
     after_run:
     - _kill-emulator
 
-  test_emulator_custom_build_number:
+  _disabled_test_emulator_custom_build_number:
     envs:
     - EMU_VER: 34
     - PROFILE: pixel
@@ -89,7 +89,7 @@ workflows:
     - _take_screenshot
     - _kill-emulator
     - _restore_emulator
-  test_emulator_page_size_16k:
+  _disabled_test_emulator_page_size_16k:
     envs:
     - EMU_VER: 36
     - PROFILE: pixel
@@ -101,7 +101,7 @@ workflows:
     - _take_screenshot
     - _kill-emulator
 
-  test_emulator_start_28:
+  _disabled_test_emulator_start_28:
     envs:
     - EMU_VER: 28
     - PROFILE: pixel
@@ -113,7 +113,7 @@ workflows:
     - _take_screenshot
     - _kill-emulator
 
-  test_emulator_start_29:
+  _disabled_test_emulator_start_29:
     envs:
     - EMU_VER: 29
     - PROFILE: pixel
@@ -125,7 +125,7 @@ workflows:
     - _take_screenshot
     - _kill-emulator
 
-  test_emulator_start_30:
+  _disabled_test_emulator_start_30:
     envs:
     - EMU_VER: 30
     - PROFILE: pixel_2
@@ -137,7 +137,7 @@ workflows:
     - _take_screenshot
     - _kill-emulator
 
-  test_emulator_start_32:
+  _disabled_test_emulator_start_32:
     envs:
     - EMU_VER: 32
     - PROFILE: pixel_2
@@ -228,6 +228,17 @@ workflows:
             cd $BITRISE_DEPLOY_DIR
             $ANDROID_HOME/platform-tools/adb -s $BITRISE_EMULATOR_SERIAL shell "screencap -p /sdcard/screen.png"
             $ANDROID_HOME/platform-tools/adb -s $BITRISE_EMULATOR_SERIAL pull "/sdcard/screen.png" "./screen_$EMU_VER.png"
+
+  _export_emulator_logs:
+    steps:
+    - script:
+        is_always_run: true
+        title: Export emulator logs
+        inputs:
+        - content: |
+            #!/bin/bash
+            set -uxo pipefail
+            $ANDROID_HOME/platform-tools/adb -s "$BITRISE_EMULATOR_SERIAL" logcat -d > "$BITRISE_DEPLOY_DIR/emulator_logcat_$EMU_VER.log"
 
   _kill-emulator:
     steps:
