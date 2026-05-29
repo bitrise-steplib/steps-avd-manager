@@ -215,26 +215,75 @@ func main() {
 	if cfg.IsHeadlessMode {
 		args = append(args, []string{"-no-window", "-no-boot-anim"}...)
 	}
+	debugEnabled := cfg.HostDebugTags != "" && cfg.HostDebugTags != "none"
+	logcatEnabled := cfg.DeviceLogcatTags != "" && cfg.DeviceLogcatTags != "none"
+
 	var (
 		emulatorLogPath string
 		logcatLogPath   string
 	)
-	// Always capture host log so it can be exported on failure even without host_debug_tags.
+	// When debug is enabled, write directly to deploy dir so the file is always an artifact.
+	// Otherwise write to a temp dir — on success we delete it, on failure we move it to deploy dir.
 	if cfg.DeployDir != "" {
-		emulatorLogPath = filepath.Join(cfg.DeployDir, cfg.ID+hostLogSuffix)
+		if debugEnabled {
+			emulatorLogPath = filepath.Join(cfg.DeployDir, cfg.ID+hostLogSuffix)
+		} else {
+			emulatorLogPath = filepath.Join(os.TempDir(), cfg.ID+hostLogSuffix)
+		}
 	}
 	if cfg.HostDebugTags != "" && cfg.HostDebugTags != "none" {
 		args = append(args, "-debug", cfg.HostDebugTags)
 	}
-	if cfg.DeviceLogcatTags != "" && cfg.DeviceLogcatTags != "none" {
-		logcatLogPath = filepath.Join(cfg.DeployDir, cfg.ID+deviceLogcatSuffix)
-		args = append(args, "-logcat", cfg.DeviceLogcatTags, "-logcat-output", logcatLogPath)
+
+	// Always capture logcat at warning level for failure diagnostics; use user-specified tags when set.
+	logcatTags := "*:w"
+	if logcatEnabled {
+		logcatTags = cfg.DeviceLogcatTags
 	}
+	if cfg.DeployDir != "" {
+		if logcatEnabled {
+			logcatLogPath = filepath.Join(cfg.DeployDir, cfg.ID+deviceLogcatSuffix)
+		} else {
+			logcatLogPath = filepath.Join(os.TempDir(), cfg.ID+deviceLogcatSuffix)
+		}
+		args = append(args, "-logcat", logcatTags, "-logcat-output", logcatLogPath)
+	}
+
+	// onFailure moves temp logs to the deploy dir and exports their paths before the step exits.
+	onFailure := func() {
+		if emulatorLogPath != "" && !debugEnabled && cfg.DeployDir != "" {
+			dest := filepath.Join(cfg.DeployDir, cfg.ID+hostLogSuffix)
+			if err := os.Rename(emulatorLogPath, dest); err != nil {
+				log.Warnf("Failed to move emulator host log to deploy dir: %s", err)
+			} else {
+				emulatorLogPath = dest
+			}
+		}
+		if emulatorLogPath != "" {
+			if err := tools.ExportEnvironmentWithEnvman("BITRISE_EMULATOR_HOST_LOG", emulatorLogPath); err != nil {
+				log.Warnf("Failed to export BITRISE_EMULATOR_HOST_LOG: %s", err)
+			}
+		}
+		if logcatLogPath != "" && !logcatEnabled && cfg.DeployDir != "" {
+			dest := filepath.Join(cfg.DeployDir, cfg.ID+deviceLogcatSuffix)
+			if err := os.Rename(logcatLogPath, dest); err != nil {
+				log.Warnf("Failed to move device logcat log to deploy dir: %s", err)
+			} else {
+				logcatLogPath = dest
+			}
+		}
+		if logcatLogPath != "" {
+			if err := tools.ExportEnvironmentWithEnvman("BITRISE_EMULATOR_DEVICE_LOGCAT_LOG", logcatLogPath); err != nil {
+				log.Warnf("Failed to export BITRISE_EMULATOR_DEVICE_LOGCAT_LOG: %s", err)
+			}
+		}
+	}
+
 	args = append(args, startCustomFlags...)
 
-	serial := startEmulator(adbClient, emulatorPath, args, runningDevicesBeforeBoot, emulatorLogPath, 1)
+	serial := startEmulator(adbClient, emulatorPath, args, runningDevicesBeforeBoot, emulatorLogPath, onFailure, 1)
 
-	debugEnabled := cfg.HostDebugTags != "" && cfg.HostDebugTags != "none"
+	// On success: rename debug-mode logs to use the serial; delete temp logs that weren't requested.
 	if emulatorLogPath != "" {
 		if debugEnabled {
 			renamed := filepath.Join(cfg.DeployDir, serial+hostLogSuffix)
@@ -244,7 +293,6 @@ func main() {
 				emulatorLogPath = renamed
 			}
 		} else {
-			// Boot succeeded without debug mode — discard the log captured for failure diagnostics.
 			if err := os.Remove(emulatorLogPath); err != nil {
 				log.Warnf("Failed to remove temporary emulator log: %s", err)
 			}
@@ -252,11 +300,18 @@ func main() {
 		}
 	}
 	if logcatLogPath != "" {
-		renamed := filepath.Join(cfg.DeployDir, serial+deviceLogcatSuffix)
-		if err := os.Rename(logcatLogPath, renamed); err != nil {
-			log.Warnf("Failed to rename device logcat log: %s", err)
+		if logcatEnabled {
+			renamed := filepath.Join(cfg.DeployDir, serial+deviceLogcatSuffix)
+			if err := os.Rename(logcatLogPath, renamed); err != nil {
+				log.Warnf("Failed to rename device logcat log: %s", err)
+			} else {
+				logcatLogPath = renamed
+			}
 		} else {
-			logcatLogPath = renamed
+			if err := os.Remove(logcatLogPath); err != nil {
+				log.Warnf("Failed to remove temporary logcat log: %s", err)
+			}
+			logcatLogPath = ""
 		}
 	}
 
@@ -302,7 +357,7 @@ func main() {
 	}
 }
 
-func startEmulator(adbClient adb.ADB, emulatorPath string, args []string, runningDevices map[string]string, logPath string, attempt int) string {
+func startEmulator(adbClient adb.ADB, emulatorPath string, args []string, runningDevices map[string]string, logPath string, onFailure func(), attempt int) string {
 	var faultBuf bytes.Buffer
 	var writer io.Writer = &faultBuf
 
@@ -347,10 +402,8 @@ func startEmulator(adbClient adb.ADB, emulatorPath string, args []string, runnin
 		log.Printf("Emulator log tail:\n%s", tailLines(faultBuf.String(), 50))
 		if logPath != "" {
 			log.Printf("Full emulator log: %s", logPath)
-			if err := tools.ExportEnvironmentWithEnvman("BITRISE_EMULATOR_HOST_LOG", logPath); err != nil {
-				log.Warnf("Failed to export BITRISE_EMULATOR_HOST_LOG: %s", err)
-			}
 		}
+		onFailure()
 	}
 
 	var serial string
@@ -399,7 +452,7 @@ waitLoop:
 	timeoutTimer.Stop()
 	deviceCheckTicker.Stop()
 	if retry {
-		return startEmulator(adbClient, emulatorPath, args, runningDevices, logPath, attempt+1)
+		return startEmulator(adbClient, emulatorPath, args, runningDevices, logPath, onFailure, attempt+1)
 	}
 	return serial
 }
