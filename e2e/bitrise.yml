@@ -75,7 +75,7 @@ workflows:
 
   test_emulator_start_37:
     envs:
-    - EMU_VER: 37
+    - EMU_VER: "37.0"
     - PROFILE: pixel_2
     - TAG: google_apis_ps16k
     - EMU_BUILD_NUMBER: preinstalled

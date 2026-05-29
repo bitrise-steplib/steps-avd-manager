@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -29,7 +30,7 @@ import (
 type config struct {
 	AndroidHome                string `env:"ANDROID_HOME"`
 	DeployDir                  string `env:"BITRISE_DEPLOY_DIR"`
-	APILevel                   int    `env:"api_level,required"`
+	APILevel                   string `env:"api_level,required"`
 	Tag                        string `env:"tag,opt[google_apis,google_apis_ps16k,google_apis_playstore,google_apis_playstore_ps16k,aosp_atd,google_atd,android-wear,android-tv,default]"`
 	DeviceProfile              string `env:"profile,required"`
 	DisableAnimations          bool   `env:"disable_animations,opt[yes,no]"`
@@ -122,7 +123,7 @@ func main() {
 		avdManagerPath = filepath.Join(cmdlineToolsPath, "avdmanager")
 		emulatorPath   = filepath.Join(cfg.AndroidHome, "emulator", "emulator")
 
-		pkg     = fmt.Sprintf("system-images;android-%d;%s;%s", cfg.APILevel, cfg.Tag, cfg.Abi)
+		pkg     = fmt.Sprintf("system-images;android-%s;%s;%s", cfg.APILevel, cfg.Tag, cfg.Abi)
 		yes, no = strings.Repeat("yes\n", 20), strings.Repeat("no\n", 20)
 	)
 
@@ -160,12 +161,15 @@ func main() {
 	}
 
 	avdmanagerTag := cfg.Tag
-	// The tag passed to avdmanager is different when using 16kb page size images. Otherwise it fails with:
-	// > Error: Invalid --tag google_apis_ps16k for the selected package. Valid tags are:
-	// > page_size_16kb
-	// > null
 	if avdmanagerTag == "google_apis_ps16k" || avdmanagerTag == "google_apis_playstore_ps16k" {
-		avdmanagerTag = "page_size_16kb"
+		// The avdmanager tag for 16kb page size images changed across API levels:
+		// - API <= 36: valid tag is "page_size_16kb"
+		// - API 37+:   valid tag is "google_apis" (ps16k is encoded in the system image, not the AVD tag)
+		if majorAPILevel(cfg.APILevel) >= 37 {
+			avdmanagerTag = "google_apis"
+		} else {
+			avdmanagerTag = "page_size_16kb"
+		}
 	}
 	phases = append(phases, []phase{
 		{
@@ -387,6 +391,12 @@ waitLoop:
 		return startEmulator(adbClient, emulatorPath, args, runningDevices, logPath, attempt+1)
 	}
 	return serial
+}
+
+func majorAPILevel(apiLevel string) int {
+	major, _, _ := strings.Cut(apiLevel, ".")
+	n, _ := strconv.Atoi(major)
+	return n
 }
 
 func tailLines(s string, n int) string {
