@@ -170,7 +170,7 @@ inputs:
     value_options:
     - "yes"
     - "no"
-- host_debug_tags: ""
+- host_debug_tags:
   opts:
     category: Debugging
     title: Emulator debug tags
@@ -186,7 +186,7 @@ inputs:
     - ""
     - "init,avd,kernel,snapshot"
     - "all"
-- device_logcat_tags: ""
+- device_logcat_tags:
   opts:
     category: Debugging
     title: Logcat filters
@@ -216,12 +216,15 @@ outputs:
 - BITRISE_EMULATOR_SERIAL:
   opts:
     title: Emulator serial
+    summary: Booted emulator serial
     description: Booted emulator serial
 - BITRISE_EMULATOR_HOST_LOG:
   opts:
     title: Emulator log file path
+    summary: Path to the emulator process stdout/stderr log file. Only set when `host_debug_tags` is non-empty.
     description: Path to the emulator process stdout/stderr log file. Only set when `host_debug_tags` is non-empty.
 - BITRISE_EMULATOR_DEVICE_LOGCAT_LOG:
   opts:
     title: Emulator logcat log file path
+    summary: Path to the device-side logcat log file captured via `-logcat-output`. Only set when `device_logcat_tags` is non-empty.
     description: Path to the device-side logcat log file captured via `-logcat-output`. Only set when `device_logcat_tags` is non-empty.
