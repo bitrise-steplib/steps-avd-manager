@@ -39,7 +39,7 @@ type config struct {
 	EmulatorChannel            string `env:"emulator_channel,opt[no update,0,1,2,3]"`
 	EmulatorBuildNumber        string `env:"emulator_build_number,required"`
 	IsHeadlessMode             bool   `env:"headless_mode,opt[yes,no]"`
-	DebugTags                  string `env:"debug_tags"`
+	DebugTags                  string `env:"emulator_debug_tags"`
 	LogcatTags                 string `env:"logcat_tags"`
 }
 
@@ -217,7 +217,7 @@ func main() {
 		logcatLogPath   string
 	)
 	if cfg.DebugTags != "" {
-		emulatorLogPath = filepath.Join(cfg.DeployDir, cfg.ID+"_emulator.log")
+		emulatorLogPath = filepath.Join(cfg.DeployDir, cfg.ID+"_emulator_host.log")
 		logcatLogPath = filepath.Join(cfg.DeployDir, cfg.ID+"_device.log")
 		args = append(args, "-debug", cfg.DebugTags, "-logcat-output", logcatLogPath)
 	}
@@ -250,23 +250,23 @@ func main() {
 		log.Warnf("Failed to export environment (BITRISE_EMULATOR_SERIAL), error: %s", err)
 	}
 	if emulatorLogPath != "" {
-		if err := tools.ExportEnvironmentWithEnvman("BITRISE_EMULATOR_LOG", emulatorLogPath); err != nil {
-			log.Warnf("Failed to export environment (BITRISE_EMULATOR_LOG), error: %s", err)
+		if err := tools.ExportEnvironmentWithEnvman("BITRISE_EMULATOR_HOST_LOG", emulatorLogPath); err != nil {
+			log.Warnf("Failed to export environment (BITRISE_EMULATOR_HOST_LOG), error: %s", err)
 		}
 	}
 	if logcatLogPath != "" {
-		if err := tools.ExportEnvironmentWithEnvman("BITRISE_EMULATOR_LOGCAT_LOG", logcatLogPath); err != nil {
-			log.Warnf("Failed to export environment (BITRISE_EMULATOR_LOGCAT_LOG), error: %s", err)
+		if err := tools.ExportEnvironmentWithEnvman("BITRISE_EMULATOR_DEVICE_LOGCAT_LOG", logcatLogPath); err != nil {
+			log.Warnf("Failed to export environment (BITRISE_EMULATOR_DEVICE_LOGCAT_LOG), error: %s", err)
 		}
 	}
 	log.Printf("")
 	log.Infof("Step outputs")
 	log.Printf("$BITRISE_EMULATOR_SERIAL = %s", serial)
 	if emulatorLogPath != "" {
-		log.Printf("$BITRISE_EMULATOR_LOG = %s", emulatorLogPath)
+		log.Printf("$BITRISE_EMULATOR_HOST_LOG = %s", emulatorLogPath)
 	}
 	if logcatLogPath != "" {
-		log.Printf("$BITRISE_EMULATOR_LOGCAT_LOG = %s", logcatLogPath)
+		log.Printf("$BITRISE_EMULATOR_DEVICE_LOGCAT_LOG = %s", logcatLogPath)
 	}
 }
 

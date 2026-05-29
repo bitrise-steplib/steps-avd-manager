@@ -63,7 +63,7 @@ workflows:
         - profile: $PROFILE
         - abi: $ABI
         - emulator_build_number: $EMU_BUILD_NUMBER
-        - debug_tags: all
+        - emulator_debug_tags: all
         - logcat_tags: "*:w"
     - wait-for-android-emulator: {}
     - script:

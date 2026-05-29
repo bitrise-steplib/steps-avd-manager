@@ -169,18 +169,22 @@ inputs:
     value_options:
     - "yes"
     - "no"
-- debug_tags: ""
+- emulator_debug_tags: ""
   opts:
     category: Debugging
     title: Emulator debug tags
-    summary: Comma-separated list of emulator debug tags. When set, the emulator is launched with `-debug <tags>` and its device logcat is captured to `$BITRISE_DEPLOY_DIR/<emulator_id>_device.log`.
+    summary: Comma-separated list of emulator debug tags. When set, the emulator is launched with `-debug <tags>` and log paths are exported as `$BITRISE_EMULATOR_HOST_LOG` and `$BITRISE_EMULATOR_DEVICE_LOGCAT_LOG`.
     description: |-
       Comma-separated list of emulator debug tags (e.g. `init,avd,kernel` or `all`). Passed to the emulator as `-debug <tags>`.
 
-      When this input is non-empty, the emulator is also started with `-logcat-output` pointing to `$BITRISE_DEPLOY_DIR/<emulator_id>_device.log`, so the device-side logcat stream is captured to a file deployed as a build artifact. The file is written by the emulator process directly, so logs are preserved even if the device never becomes reachable via `adb`.
+      When this input is non-empty, the emulator host process stdout/stderr is saved to the path exported as `$BITRISE_EMULATOR_HOST_LOG`, and the device-side logcat stream is captured via `-logcat-output` to the path exported as `$BITRISE_EMULATOR_DEVICE_LOGCAT_LOG`. Both files are written to `$BITRISE_DEPLOY_DIR` and deployed as build artifacts. Logs are preserved even if the device never becomes reachable via `adb`.
 
       Leave empty to disable. Run `emulator -help-debug-tags` locally to see the full list of available tags.
     is_required: false
+    value_options:
+    - ""
+    - "init,avd,kernel,snapshot"
+    - "all"
 - logcat_tags: ""
   opts:
     category: Debugging
@@ -196,17 +200,25 @@ inputs:
 
       Leave empty to disable. See `adb logcat --help` for more information.
     is_required: false
+    value_options:
+    - ""
+    - "*:v"
+    - "*:d"
+    - "*:i"
+    - "*:w"
+    - "*:e"
+    - "*:s"
 
 outputs:
 - BITRISE_EMULATOR_SERIAL:
   opts:
     title: Emulator serial
     description: Booted emulator serial
-- BITRISE_EMULATOR_LOG:
+- BITRISE_EMULATOR_HOST_LOG:
   opts:
     title: Emulator log file path
-    description: Path to the emulator process stdout/stderr log file. Only set when `debug_tags` is non-empty.
-- BITRISE_EMULATOR_LOGCAT_LOG:
+    description: Path to the emulator process stdout/stderr log file. Only set when `emulator_debug_tags` is non-empty.
+- BITRISE_EMULATOR_DEVICE_LOGCAT_LOG:
   opts:
     title: Emulator logcat log file path
-    description: Path to the device-side logcat log file captured via `-logcat-output`. Only set when `debug_tags` is non-empty.
+    description: Path to the device-side logcat log file captured via `-logcat-output`. Only set when `emulator_debug_tags` is non-empty.
