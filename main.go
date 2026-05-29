@@ -219,8 +219,11 @@ func main() {
 		emulatorLogPath string
 		logcatLogPath   string
 	)
-	if cfg.HostDebugTags != "" && cfg.HostDebugTags != "none" {
+	// Always capture host log so it can be exported on failure even without host_debug_tags.
+	if cfg.DeployDir != "" {
 		emulatorLogPath = filepath.Join(cfg.DeployDir, cfg.ID+hostLogSuffix)
+	}
+	if cfg.HostDebugTags != "" && cfg.HostDebugTags != "none" {
 		args = append(args, "-debug", cfg.HostDebugTags)
 	}
 	if cfg.DeviceLogcatTags != "" && cfg.DeviceLogcatTags != "none" {
@@ -231,12 +234,21 @@ func main() {
 
 	serial := startEmulator(adbClient, emulatorPath, args, runningDevicesBeforeBoot, emulatorLogPath, 1)
 
+	debugEnabled := cfg.HostDebugTags != "" && cfg.HostDebugTags != "none"
 	if emulatorLogPath != "" {
-		renamed := filepath.Join(cfg.DeployDir, serial+hostLogSuffix)
-		if err := os.Rename(emulatorLogPath, renamed); err != nil {
-			log.Warnf("Failed to rename emulator host log: %s", err)
+		if debugEnabled {
+			renamed := filepath.Join(cfg.DeployDir, serial+hostLogSuffix)
+			if err := os.Rename(emulatorLogPath, renamed); err != nil {
+				log.Warnf("Failed to rename emulator host log: %s", err)
+			} else {
+				emulatorLogPath = renamed
+			}
 		} else {
-			emulatorLogPath = renamed
+			// Boot succeeded without debug mode — discard the log captured for failure diagnostics.
+			if err := os.Remove(emulatorLogPath); err != nil {
+				log.Warnf("Failed to remove temporary emulator log: %s", err)
+			}
+			emulatorLogPath = ""
 		}
 	}
 	if logcatLogPath != "" {
@@ -335,6 +347,9 @@ func startEmulator(adbClient adb.ADB, emulatorPath string, args []string, runnin
 		log.Printf("Emulator log tail:\n%s", tailLines(faultBuf.String(), 50))
 		if logPath != "" {
 			log.Printf("Full emulator log: %s", logPath)
+			if err := tools.ExportEnvironmentWithEnvman("BITRISE_EMULATOR_HOST_LOG", logPath); err != nil {
+				log.Warnf("Failed to export BITRISE_EMULATOR_HOST_LOG: %s", err)
+			}
 		}
 	}
 
