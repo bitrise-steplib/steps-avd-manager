@@ -299,7 +299,7 @@ func startEmulator(adbClient adb.ADB, emulatorPath string, args []string, runnin
 		if err != nil {
 			log.Warnf("Failed to create emulator log file %s: %s", logPath, err)
 		} else {
-			defer f.Close()
+			defer func() { _ = f.Close() }()
 			writer = io.MultiWriter(f, &faultBuf)
 		}
 	}
