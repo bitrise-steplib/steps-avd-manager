@@ -218,7 +218,7 @@ func main() {
 	)
 	if cfg.DebugTags != "" {
 		emulatorLogPath = filepath.Join(cfg.DeployDir, cfg.ID+"_emulator_host.log")
-		logcatLogPath = filepath.Join(cfg.DeployDir, cfg.ID+"_device.log")
+		logcatLogPath = filepath.Join(cfg.DeployDir, cfg.ID+"_device_logcat.log")
 		args = append(args, "-debug", cfg.DebugTags, "-logcat-output", logcatLogPath)
 	}
 	if cfg.DeviceLogcatTags != "" {
@@ -227,6 +227,23 @@ func main() {
 	args = append(args, startCustomFlags...)
 
 	serial := startEmulator(adbClient, emulatorPath, args, runningDevicesBeforeBoot, emulatorLogPath, 1)
+
+	if emulatorLogPath != "" {
+		renamed := filepath.Join(cfg.DeployDir, serial+"_emulator_host.log")
+		if err := os.Rename(emulatorLogPath, renamed); err != nil {
+			log.Warnf("Failed to rename emulator host log: %s", err)
+		} else {
+			emulatorLogPath = renamed
+		}
+	}
+	if logcatLogPath != "" {
+		renamed := filepath.Join(cfg.DeployDir, serial+"_device_logcat.log")
+		if err := os.Rename(logcatLogPath, renamed); err != nil {
+			log.Warnf("Failed to rename device logcat log: %s", err)
+		} else {
+			logcatLogPath = renamed
+		}
+	}
 
 	if cfg.DisableAnimations {
 		// We need to wait for the device to boot before we can disable animations
