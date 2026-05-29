@@ -218,6 +218,18 @@ func main() {
 	debugEnabled := cfg.HostDebugTags != "" && cfg.HostDebugTags != "none"
 	logcatEnabled := cfg.DeviceLogcatTags != "" && cfg.DeviceLogcatTags != "none"
 
+	// Detect debug/logcat flags already present in start_command_flags to avoid conflicts.
+	customHasDebug := sliceutil.IsStringInSlice("-debug", startCustomFlags)
+	customHasLogcat := sliceutil.IsStringInSlice("-logcat", startCustomFlags) ||
+		sliceutil.IsStringInSlice("-logcat-output", startCustomFlags)
+
+	if customHasDebug && debugEnabled {
+		failf("Conflicting flags: -debug is already set in start_command_flags and host_debug_tags is also set. Use one or the other.")
+	}
+	if customHasLogcat && logcatEnabled {
+		failf("Conflicting flags: -logcat/-logcat-output is already set in start_command_flags and device_logcat_tags is also set. Use one or the other.")
+	}
+
 	// Timestamp embedded in filenames ensures uniqueness across retries and concurrent runs.
 	runID := time.Now().Format("20060102_150405")
 
@@ -235,16 +247,16 @@ func main() {
 			emulatorLogPath = filepath.Join(os.TempDir(), hostLogName)
 		}
 	}
-	if cfg.HostDebugTags != "" && cfg.HostDebugTags != "none" {
+	if debugEnabled {
 		args = append(args, "-debug", cfg.HostDebugTags)
 	}
 
-	// Always capture logcat at warning level for failure diagnostics; use user-specified tags when set.
-	logcatTags := "*:w"
-	if logcatEnabled {
-		logcatTags = cfg.DeviceLogcatTags
-	}
-	if cfg.DeployDir != "" {
+	// Capture logcat for failure diagnostics unless the user already handles it via start_command_flags.
+	if !customHasLogcat && cfg.DeployDir != "" {
+		logcatTags := "*:w"
+		if logcatEnabled {
+			logcatTags = cfg.DeviceLogcatTags
+		}
 		logcatLogName := cfg.ID + "_" + runID + deviceLogcatSuffix
 		if logcatEnabled {
 			logcatLogPath = filepath.Join(cfg.DeployDir, logcatLogName)
