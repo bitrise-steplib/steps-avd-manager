@@ -73,11 +73,11 @@ workflows:
     - _take_screenshot
     - _kill-emulator
 
-  test_emulator_start_35:
+  test_emulator_start_37:
     envs:
-    - EMU_VER: 35
+    - EMU_VER: 37
     - PROFILE: pixel_2
-    - TAG: google_apis
+    - TAG: google_apis_ps16k
     - EMU_BUILD_NUMBER: preinstalled
     after_run:
     - _start-emulator
