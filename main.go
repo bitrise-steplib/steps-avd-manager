@@ -254,53 +254,19 @@ func main() {
 		args = append(args, "-logcat", logcatTags, "-logcat-output", logcatLogPath)
 	}
 
-	// onFailure exports log paths before the step exits; files are already in deploy dir.
-	onFailure := func() {
-		if emulatorLogPath != "" {
-			if err := tools.ExportEnvironmentWithEnvman("BITRISE_EMULATOR_HOST_LOG", emulatorLogPath); err != nil {
-				log.Warnf("Failed to export BITRISE_EMULATOR_HOST_LOG: %s", err)
-			}
-		}
-		if logcatLogPath != "" {
-			if err := tools.ExportEnvironmentWithEnvman("BITRISE_EMULATOR_DEVICE_LOGCAT_LOG", logcatLogPath); err != nil {
-				log.Warnf("Failed to export BITRISE_EMULATOR_DEVICE_LOGCAT_LOG: %s", err)
-			}
-		}
-	}
-
 	args = append(args, startCustomFlags...)
 
-	serial, err := startEmulator(adbClient, emulatorPath, args, runningDevicesBeforeBoot, emulatorLogPath, 1)
-	if err != nil {
-		onFailure()
-		failf(err.Error())
-	}
+	serial, bootErr := startEmulator(adbClient, emulatorPath, args, runningDevicesBeforeBoot, emulatorLogPath, 1)
 
-	// On success: rename logs to use the serial. Delete logs that weren't explicitly requested.
-	if emulatorLogPath != "" {
-		if debugEnabled {
-			renamed := filepath.Join(cfg.DeployDir, serial+"_"+runID+hostLogSuffix)
-			if err := os.Rename(emulatorLogPath, renamed); err != nil {
-				log.Warnf("Failed to rename emulator host log: %s", err)
-			} else {
-				emulatorLogPath = renamed
-			}
-		} else {
+	// On success, delete logs that weren't explicitly requested (they were captured for diagnostics only).
+	if bootErr == nil {
+		if emulatorLogPath != "" && !debugEnabled {
 			if err := os.Remove(emulatorLogPath); err != nil {
 				log.Warnf("Failed to remove emulator host log: %s", err)
 			}
 			emulatorLogPath = ""
 		}
-	}
-	if logcatLogPath != "" {
-		if logcatEnabled {
-			renamed := filepath.Join(cfg.DeployDir, serial+"_"+runID+deviceLogcatSuffix)
-			if err := os.Rename(logcatLogPath, renamed); err != nil {
-				log.Warnf("Failed to rename device logcat log: %s", err)
-			} else {
-				logcatLogPath = renamed
-			}
-		} else {
+		if logcatLogPath != "" && !logcatEnabled {
 			if err := os.Remove(logcatLogPath); err != nil {
 				log.Warnf("Failed to remove device logcat log: %s", err)
 			}
@@ -308,7 +274,7 @@ func main() {
 		}
 	}
 
-	if cfg.DisableAnimations {
+	if bootErr == nil && cfg.DisableAnimations {
 		// We need to wait for the device to boot before we can disable animations
 		adb, err := adbmanager.New(androidSdk, cmdFactory, logger)
 		if err != nil {
@@ -326,27 +292,35 @@ func main() {
 		log.Donef("Done")
 	}
 
-	if err := tools.ExportEnvironmentWithEnvman("BITRISE_EMULATOR_SERIAL", serial); err != nil {
-		log.Warnf("Failed to export environment (BITRISE_EMULATOR_SERIAL), error: %s", err)
+	if serial != "" {
+		if err := tools.ExportEnvironmentWithEnvman("BITRISE_EMULATOR_SERIAL", serial); err != nil {
+			log.Warnf("Failed to export BITRISE_EMULATOR_SERIAL: %s", err)
+		}
 	}
 	if emulatorLogPath != "" {
 		if err := tools.ExportEnvironmentWithEnvman("BITRISE_EMULATOR_HOST_LOG", emulatorLogPath); err != nil {
-			log.Warnf("Failed to export environment (BITRISE_EMULATOR_HOST_LOG), error: %s", err)
+			log.Warnf("Failed to export BITRISE_EMULATOR_HOST_LOG: %s", err)
 		}
 	}
 	if logcatLogPath != "" {
 		if err := tools.ExportEnvironmentWithEnvman("BITRISE_EMULATOR_DEVICE_LOGCAT_LOG", logcatLogPath); err != nil {
-			log.Warnf("Failed to export environment (BITRISE_EMULATOR_DEVICE_LOGCAT_LOG), error: %s", err)
+			log.Warnf("Failed to export BITRISE_EMULATOR_DEVICE_LOGCAT_LOG: %s", err)
 		}
 	}
 	log.Printf("")
 	log.Infof("Step outputs")
-	log.Printf("$BITRISE_EMULATOR_SERIAL = %s", serial)
+	if serial != "" {
+		log.Printf("$BITRISE_EMULATOR_SERIAL = %s", serial)
+	}
 	if emulatorLogPath != "" {
 		log.Printf("$BITRISE_EMULATOR_HOST_LOG = %s", emulatorLogPath)
 	}
 	if logcatLogPath != "" {
 		log.Printf("$BITRISE_EMULATOR_DEVICE_LOGCAT_LOG = %s", logcatLogPath)
+	}
+
+	if bootErr != nil {
+		failf(bootErr.Error())
 	}
 }
 
