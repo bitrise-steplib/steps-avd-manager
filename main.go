@@ -218,6 +218,9 @@ func main() {
 	debugEnabled := cfg.HostDebugTags != "" && cfg.HostDebugTags != "none"
 	logcatEnabled := cfg.DeviceLogcatTags != "" && cfg.DeviceLogcatTags != "none"
 
+	// Timestamp embedded in filenames ensures uniqueness across retries and concurrent runs.
+	runID := time.Now().Format("20060102_150405")
+
 	var (
 		emulatorLogPath string
 		logcatLogPath   string
@@ -225,10 +228,11 @@ func main() {
 	// When debug is enabled, write directly to deploy dir so the file is always an artifact.
 	// Otherwise write to a temp dir — on success we delete it, on failure we move it to deploy dir.
 	if cfg.DeployDir != "" {
+		hostLogName := cfg.ID + "_" + runID + hostLogSuffix
 		if debugEnabled {
-			emulatorLogPath = filepath.Join(cfg.DeployDir, cfg.ID+hostLogSuffix)
+			emulatorLogPath = filepath.Join(cfg.DeployDir, hostLogName)
 		} else {
-			emulatorLogPath = filepath.Join(os.TempDir(), cfg.ID+hostLogSuffix)
+			emulatorLogPath = filepath.Join(os.TempDir(), hostLogName)
 		}
 	}
 	if cfg.HostDebugTags != "" && cfg.HostDebugTags != "none" {
@@ -241,10 +245,11 @@ func main() {
 		logcatTags = cfg.DeviceLogcatTags
 	}
 	if cfg.DeployDir != "" {
+		logcatLogName := cfg.ID + "_" + runID + deviceLogcatSuffix
 		if logcatEnabled {
-			logcatLogPath = filepath.Join(cfg.DeployDir, cfg.ID+deviceLogcatSuffix)
+			logcatLogPath = filepath.Join(cfg.DeployDir, logcatLogName)
 		} else {
-			logcatLogPath = filepath.Join(os.TempDir(), cfg.ID+deviceLogcatSuffix)
+			logcatLogPath = filepath.Join(os.TempDir(), logcatLogName)
 		}
 		args = append(args, "-logcat", logcatTags, "-logcat-output", logcatLogPath)
 	}
@@ -252,7 +257,7 @@ func main() {
 	// onFailure moves temp logs to the deploy dir and exports their paths before the step exits.
 	onFailure := func() {
 		if emulatorLogPath != "" && !debugEnabled && cfg.DeployDir != "" {
-			dest := filepath.Join(cfg.DeployDir, cfg.ID+hostLogSuffix)
+			dest := filepath.Join(cfg.DeployDir, filepath.Base(emulatorLogPath))
 			if err := os.Rename(emulatorLogPath, dest); err != nil {
 				log.Warnf("Failed to move emulator host log to deploy dir: %s", err)
 			} else {
@@ -265,7 +270,7 @@ func main() {
 			}
 		}
 		if logcatLogPath != "" && !logcatEnabled && cfg.DeployDir != "" {
-			dest := filepath.Join(cfg.DeployDir, cfg.ID+deviceLogcatSuffix)
+			dest := filepath.Join(cfg.DeployDir, filepath.Base(logcatLogPath))
 			if err := os.Rename(logcatLogPath, dest); err != nil {
 				log.Warnf("Failed to move device logcat log to deploy dir: %s", err)
 			} else {
@@ -286,7 +291,7 @@ func main() {
 	// On success: rename debug-mode logs to use the serial; delete temp logs that weren't requested.
 	if emulatorLogPath != "" {
 		if debugEnabled {
-			renamed := filepath.Join(cfg.DeployDir, serial+hostLogSuffix)
+			renamed := filepath.Join(cfg.DeployDir, serial+"_"+runID+hostLogSuffix)
 			if err := os.Rename(emulatorLogPath, renamed); err != nil {
 				log.Warnf("Failed to rename emulator host log: %s", err)
 			} else {
@@ -301,7 +306,7 @@ func main() {
 	}
 	if logcatLogPath != "" {
 		if logcatEnabled {
-			renamed := filepath.Join(cfg.DeployDir, serial+deviceLogcatSuffix)
+			renamed := filepath.Join(cfg.DeployDir, serial+"_"+runID+deviceLogcatSuffix)
 			if err := os.Rename(logcatLogPath, renamed); err != nil {
 				log.Warnf("Failed to rename device logcat log: %s", err)
 			} else {
