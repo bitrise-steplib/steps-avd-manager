@@ -81,7 +81,7 @@ workflows:
     - EMU_BUILD_NUMBER: preinstalled
     after_run:
     - _start-emulator
-    - _run_ui_test_and_take_screenshot
+    - _take_screenshot
     - _kill-emulator
 
   _start-emulator:
