@@ -64,17 +64,17 @@ workflows:
         - abi: $ABI
         - emulator_build_number: $EMU_BUILD_NUMBER
         - emulator_debug_tags: all
-        - logcat_tags: "*:w"
+        - device_logcat_tags: "*:w"
     - wait-for-android-emulator: {}
     - script:
         is_always_run: true
-        title: Verify device logcat artifact exists
+        title: Verify emulator log artifacts exist
         inputs:
         - content: |
             #!/bin/bash
             set -euxo pipefail
-            LOG_FILE="$BITRISE_DEPLOY_DIR/emulator_device.log"
-            test -s "$LOG_FILE"
+            test -s "$BITRISE_EMULATOR_HOST_LOG"
+            test -s "$BITRISE_EMULATOR_DEVICE_LOGCAT_LOG"
     after_run:
     - _kill-emulator
 

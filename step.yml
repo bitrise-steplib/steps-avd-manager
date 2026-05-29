@@ -185,7 +185,7 @@ inputs:
     - ""
     - "init,avd,kernel,snapshot"
     - "all"
-- logcat_tags: ""
+- device_logcat_tags: ""
   opts:
     category: Debugging
     title: Logcat filters

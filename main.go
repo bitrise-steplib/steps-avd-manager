@@ -40,7 +40,7 @@ type config struct {
 	EmulatorBuildNumber        string `env:"emulator_build_number,required"`
 	IsHeadlessMode             bool   `env:"headless_mode,opt[yes,no]"`
 	DebugTags                  string `env:"emulator_debug_tags"`
-	LogcatTags                 string `env:"logcat_tags"`
+	DeviceLogcatTags                 string `env:"device_logcat_tags"`
 }
 
 var (
@@ -221,8 +221,8 @@ func main() {
 		logcatLogPath = filepath.Join(cfg.DeployDir, cfg.ID+"_device.log")
 		args = append(args, "-debug", cfg.DebugTags, "-logcat-output", logcatLogPath)
 	}
-	if cfg.LogcatTags != "" {
-		args = append(args, "-logcat", cfg.LogcatTags)
+	if cfg.DeviceLogcatTags != "" {
+		args = append(args, "-logcat", cfg.DeviceLogcatTags)
 	}
 	args = append(args, startCustomFlags...)
 
