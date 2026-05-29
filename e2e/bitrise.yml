@@ -5,50 +5,11 @@ app:
   envs:
   - TEST_APP_URL: https://github.com/bitrise-io/Bitrise-Android-Sample
   - TEST_APP_BRANCH: main
-  - ABI: arm64-v8a
 
 workflows:
-  _disabled_test_emulator_basic:
-    envs:
-    - EMU_VER: 34
-    - PROFILE: pixel
-    - ABI: arm64-v8a
-    - TAG: google_apis
-    - EMU_BUILD_NUMBER: preinstalled
-    after_run:
-    - _start-emulator
-    - _export_emulator_logs
-    - _kill-emulator
-
-  _disabled_test_emulator_full_config:
-    envs:
-    - EMU_VER: 32
-    steps:
-    - path::./:
-        title: AVD Manager
-        inputs:
-        - api_level: 32
-        - tag: google_apis
-        - profile: pixel_3_xl
-        - abi: $ABI
-        - disable_animations: "true"
-        - create_command_flags: --sdcard 2048M
-        - start_command_flags: -memory 2048
-        - emulator_id: emulator
-        - emulator_channel: no update
-        - emulator_build_number: preinstalled
-        - headless_mode: "true"
-    - wait-for-android-emulator: {}
-    - script:
-        is_always_run: true
-        title: Export emulator logcat
-        inputs:
-        - content: |
-            #!/bin/bash
-            set -uxo pipefail
-            $ANDROID_HOME/platform-tools/adb -s "$BITRISE_EMULATOR_SERIAL" logcat -d > "$BITRISE_DEPLOY_DIR/emulator_logcat_$EMU_VER.log"
-
   test_host_debug_tags_init:
+    before_run:
+    - _set_abi
     envs:
     - EMU_VER: 34
     - PROFILE: pixel
@@ -89,6 +50,7 @@ workflows:
     - _take_screenshot
     - _kill-emulator
     - _restore_emulator
+
   _disabled_test_emulator_page_size_16k:
     envs:
     - EMU_VER: 36
@@ -100,35 +62,10 @@ workflows:
     - _take_screenshot
     - _kill-emulator
 
-  _disabled_test_emulator_start_28:
+  _disabled_test_emulator_start_31:
     envs:
-    - EMU_VER: 28
-    - PROFILE: pixel
-    - ABI: x86
-    - TAG: google_apis
-    - EMU_BUILD_NUMBER: preinstalled
-    after_run:
-    - _start-emulator
-    - _take_screenshot
-    - _kill-emulator
-
-  _disabled_test_emulator_start_29:
-    envs:
-    - EMU_VER: 29
-    - PROFILE: pixel
-    - ABI: x86
-    - TAG: google_apis
-    - EMU_BUILD_NUMBER: preinstalled
-    after_run:
-    - _start-emulator
-    - _take_screenshot
-    - _kill-emulator
-
-  _disabled_test_emulator_start_30:
-    envs:
-    - EMU_VER: 30
+    - EMU_VER: 31
     - PROFILE: pixel_2
-    - ABI: x86
     - TAG: google_apis
     - EMU_BUILD_NUMBER: preinstalled
     after_run:
@@ -136,11 +73,10 @@ workflows:
     - _take_screenshot
     - _kill-emulator
 
-  _disabled_test_emulator_start_32:
+  _disabled_test_emulator_start_37:
     envs:
-    - EMU_VER: 32
+    - EMU_VER: 37
     - PROFILE: pixel_2
-    - ABI: $ABI
     - TAG: google_apis
     - EMU_BUILD_NUMBER: preinstalled
     after_run:
@@ -149,6 +85,8 @@ workflows:
     - _kill-emulator
 
   _start-emulator:
+    before_run:
+    - _set_abi
     steps:
     - path::./:
         title: Step Test
@@ -212,6 +150,20 @@ workflows:
             OUT=./_tmp/out
             tesseract -l eng "$SCREENSHOT" "$OUT"
             cat "${OUT}.txt" | grep 'Hello World!'
+
+  _set_abi:
+    steps:
+    - script:
+        title: Set ABI based on OS
+        inputs:
+        - content: |
+            #!/bin/bash
+            set -ex
+            if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+              envman add --key ABI --value x86_64
+            else
+              envman add --key ABI --value arm64-v8a
+            fi
 
   _take_screenshot:
     steps:
