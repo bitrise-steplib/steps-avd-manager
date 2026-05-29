@@ -39,7 +39,7 @@ workflows:
     after_run:
     - _kill-emulator
 
-  _disabled_test_emulator_custom_build_number:
+  test_emulator_custom_build_number:
     envs:
     - EMU_VER: 34
     - PROFILE: pixel
@@ -51,7 +51,7 @@ workflows:
     - _kill-emulator
     - _restore_emulator
 
-  _disabled_test_emulator_page_size_16k:
+  test_emulator_page_size_16k:
     envs:
     - EMU_VER: 36
     - PROFILE: pixel
@@ -62,7 +62,7 @@ workflows:
     - _take_screenshot
     - _kill-emulator
 
-  _disabled_test_emulator_start_31:
+  test_emulator_start_31:
     envs:
     - EMU_VER: 31
     - PROFILE: pixel_2
@@ -73,7 +73,7 @@ workflows:
     - _take_screenshot
     - _kill-emulator
 
-  _disabled_test_emulator_start_37:
+  test_emulator_start_37:
     envs:
     - EMU_VER: 37
     - PROFILE: pixel_2
