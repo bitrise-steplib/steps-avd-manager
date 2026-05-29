@@ -180,17 +180,6 @@ workflows:
             $ANDROID_HOME/platform-tools/adb -s $BITRISE_EMULATOR_SERIAL shell "screencap -p /sdcard/screen.png"
             $ANDROID_HOME/platform-tools/adb -s $BITRISE_EMULATOR_SERIAL pull "/sdcard/screen.png" "./screen_$EMU_VER.png"
 
-  _export_emulator_logs:
-    steps:
-    - script:
-        is_always_run: true
-        title: Export emulator logs
-        inputs:
-        - content: |
-            #!/bin/bash
-            set -uxo pipefail
-            $ANDROID_HOME/platform-tools/adb -s "$BITRISE_EMULATOR_SERIAL" logcat -d > "$BITRISE_DEPLOY_DIR/emulator_logcat_$EMU_VER.log"
-
   _kill-emulator:
     steps:
     - script:
