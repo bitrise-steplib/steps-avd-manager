@@ -40,6 +40,7 @@ type config struct {
 	EmulatorBuildNumber        string `env:"emulator_build_number,required"`
 	IsHeadlessMode             bool   `env:"headless_mode,opt[yes,no]"`
 	DebugTags                  string `env:"debug_tags"`
+	LogcatTags                 string `env:"logcat_tags"`
 }
 
 var (
@@ -211,13 +212,21 @@ func main() {
 	if cfg.IsHeadlessMode {
 		args = append(args, []string{"-no-window", "-no-boot-anim"}...)
 	}
+	var (
+		emulatorLogPath string
+		logcatLogPath   string
+	)
 	if cfg.DebugTags != "" {
-		logcatPath := filepath.Join(cfg.DeployDir, cfg.ID+"_device.log")
-		args = append(args, "-debug", cfg.DebugTags, "-logcat-output", logcatPath)
+		emulatorLogPath = filepath.Join(cfg.DeployDir, cfg.ID+"_emulator.log")
+		logcatLogPath = filepath.Join(cfg.DeployDir, cfg.ID+"_device.log")
+		args = append(args, "-debug", cfg.DebugTags, "-logcat-output", logcatLogPath)
+	}
+	if cfg.LogcatTags != "" {
+		args = append(args, "-logcat", cfg.LogcatTags)
 	}
 	args = append(args, startCustomFlags...)
 
-	serial := startEmulator(adbClient, emulatorPath, args, runningDevicesBeforeBoot, 1)
+	serial := startEmulator(adbClient, emulatorPath, args, runningDevicesBeforeBoot, emulatorLogPath, 1)
 
 	if cfg.DisableAnimations {
 		// We need to wait for the device to boot before we can disable animations
@@ -240,12 +249,28 @@ func main() {
 	if err := tools.ExportEnvironmentWithEnvman("BITRISE_EMULATOR_SERIAL", serial); err != nil {
 		log.Warnf("Failed to export environment (BITRISE_EMULATOR_SERIAL), error: %s", err)
 	}
+	if emulatorLogPath != "" {
+		if err := tools.ExportEnvironmentWithEnvman("BITRISE_EMULATOR_LOG", emulatorLogPath); err != nil {
+			log.Warnf("Failed to export environment (BITRISE_EMULATOR_LOG), error: %s", err)
+		}
+	}
+	if logcatLogPath != "" {
+		if err := tools.ExportEnvironmentWithEnvman("BITRISE_EMULATOR_LOGCAT_LOG", logcatLogPath); err != nil {
+			log.Warnf("Failed to export environment (BITRISE_EMULATOR_LOGCAT_LOG), error: %s", err)
+		}
+	}
 	log.Printf("")
 	log.Infof("Step outputs")
-	log.Printf("$BITRISE_EMULATOR_SERIAL=%s", serial)
+	log.Printf("$BITRISE_EMULATOR_SERIAL = %s", serial)
+	if emulatorLogPath != "" {
+		log.Printf("$BITRISE_EMULATOR_LOG = %s", emulatorLogPath)
+	}
+	if logcatLogPath != "" {
+		log.Printf("$BITRISE_EMULATOR_LOGCAT_LOG = %s", logcatLogPath)
+	}
 }
 
-func startEmulator(adbClient adb.ADB, emulatorPath string, args []string, runningDevices map[string]string, attempt int) string {
+func startEmulator(adbClient adb.ADB, emulatorPath string, args []string, runningDevices map[string]string, logPath string, attempt int) string {
 	var output bytes.Buffer
 	deviceStartCmd := command.New(emulatorPath, args...).SetStdout(&output).SetStderr(&output)
 
@@ -283,12 +308,14 @@ waitLoop:
 				log.Warnf("A possible cause can be the emulator process having received a KILL signal.")
 			}
 			log.Printf("Emulator log: %s", output)
+			saveEmulatorLog(&output, logPath)
 			failf("Emulator exited early, see logs above.")
 		case <-timeoutTimer.C:
 			// Include error before and after printing the emulator log because it's so long
 			errorMsg := fmt.Sprintf("Failed to boot emulator device within %d seconds.", bootTimeout/time.Second)
 			log.Errorf(errorMsg)
 			log.Printf("Emulator log: %s", output)
+			saveEmulatorLog(&output, logPath)
 			failf(errorMsg)
 		case <-deviceCheckTicker.C:
 			var err error
@@ -309,6 +336,7 @@ waitLoop:
 					retry = true
 					break waitLoop
 				} else {
+					saveEmulatorLog(&output, logPath)
 					failf("Failed to boot device due to faults after %d tries", maxBootAttempts)
 				}
 			}
@@ -317,9 +345,19 @@ waitLoop:
 	timeoutTimer.Stop()
 	deviceCheckTicker.Stop()
 	if retry {
-		return startEmulator(adbClient, emulatorPath, args, runningDevices, attempt+1)
+		return startEmulator(adbClient, emulatorPath, args, runningDevices, logPath, attempt+1)
 	}
+	saveEmulatorLog(&output, logPath)
 	return serial
+}
+
+func saveEmulatorLog(output *bytes.Buffer, logPath string) {
+	if logPath == "" {
+		return
+	}
+	if err := os.WriteFile(logPath, output.Bytes(), 0644); err != nil {
+		log.Warnf("Failed to save emulator log to %s: %s", logPath, err)
+	}
 }
 
 func containsAny(output string, any []string) bool {

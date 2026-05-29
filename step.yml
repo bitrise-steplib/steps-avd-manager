@@ -181,9 +181,32 @@ inputs:
 
       Leave empty to disable. Run `emulator -help-debug-tags` locally to see the full list of available tags.
     is_required: false
+- logcat_tags: ""
+  opts:
+    category: Debugging
+    title: Logcat filters
+    summary: Logcat filter string passed to the emulator as `-logcat <tags>`.
+    description: |-
+      Space- or comma-separated logcat filters in `componentName:logLevel` format, passed to the emulator as `-logcat <tags>`.
+
+      `componentName` is either `*` (wildcard) or a component name such as `ActivityManager` or `GSM`.
+      `logLevel` is one of: `v` (verbose), `d` (debug), `i` (informative), `w` (warning), `e` (error), `s` (silent).
+
+      Example: `*:s GSM:i` — suppresses all logs except GSM at informative level.
+
+      Leave empty to disable. See `adb logcat --help` for more information.
+    is_required: false
 
 outputs:
 - BITRISE_EMULATOR_SERIAL:
   opts:
     title: Emulator serial
     description: Booted emulator serial
+- BITRISE_EMULATOR_LOG:
+  opts:
+    title: Emulator log file path
+    description: Path to the emulator process stdout/stderr log file. Only set when `debug_tags` is non-empty.
+- BITRISE_EMULATOR_LOGCAT_LOG:
+  opts:
+    title: Emulator logcat log file path
+    description: Path to the device-side logcat log file captured via `-logcat-output`. Only set when `debug_tags` is non-empty.

@@ -5,13 +5,14 @@ app:
   envs:
   - TEST_APP_URL: https://github.com/bitrise-io/Bitrise-Android-Sample
   - TEST_APP_BRANCH: main
+  - ABI: arm64-v8a
 
 workflows:
   _disabled_test_emulator_basic:
     envs:
     - EMU_VER: 34
     - PROFILE: pixel
-    - ABI: x86_64
+    - ABI: arm64-v8a
     - TAG: google_apis
     - EMU_BUILD_NUMBER: preinstalled
     after_run:
@@ -29,7 +30,7 @@ workflows:
         - api_level: 32
         - tag: google_apis
         - profile: pixel_3_xl
-        - abi: x86_64
+        - abi: $ABI
         - disable_animations: "true"
         - create_command_flags: --sdcard 2048M
         - start_command_flags: -memory 2048
@@ -51,7 +52,6 @@ workflows:
     envs:
     - EMU_VER: 34
     - PROFILE: pixel
-    - ABI: x86_64
     - TAG: google_apis
     - EMU_BUILD_NUMBER: preinstalled
     steps:
@@ -63,7 +63,8 @@ workflows:
         - profile: $PROFILE
         - abi: $ABI
         - emulator_build_number: $EMU_BUILD_NUMBER
-        - debug_tags: init
+        - debug_tags: all
+        - logcat_tags: "*:w"
     - wait-for-android-emulator: {}
     - script:
         is_always_run: true
@@ -81,7 +82,6 @@ workflows:
     envs:
     - EMU_VER: 34
     - PROFILE: pixel
-    - ABI: x86_64
     - TAG: google_apis
     - EMU_BUILD_NUMBER: 12325540 # 35.1.21
     after_run:
@@ -93,7 +93,6 @@ workflows:
     envs:
     - EMU_VER: 36
     - PROFILE: pixel
-    - ABI: x86_64
     - TAG: google_apis_ps16k
     - EMU_BUILD_NUMBER: preinstalled
     after_run:
@@ -141,7 +140,7 @@ workflows:
     envs:
     - EMU_VER: 32
     - PROFILE: pixel_2
-    - ABI: x86_64
+    - ABI: $ABI
     - TAG: google_apis
     - EMU_BUILD_NUMBER: preinstalled
     after_run:
