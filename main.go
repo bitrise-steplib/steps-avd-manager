@@ -6,7 +6,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"time"
 
@@ -160,17 +159,20 @@ func main() {
 		)
 	}
 
-	avdmanagerTag := cfg.Tag
-	if avdmanagerTag == "google_apis_ps16k" || avdmanagerTag == "google_apis_playstore_ps16k" {
-		// The avdmanager tag for 16kb page size images changed across API levels:
-		// - API <= 36: valid tag is "page_size_16kb"
-		// - API 37+:   valid tag is "google_apis" (ps16k is encoded in the system image, not the AVD tag)
-		if majorAPILevel(cfg.APILevel) >= 37 {
-			avdmanagerTag = "google_apis"
-		} else {
-			avdmanagerTag = "page_size_16kb"
-		}
+	createAVDArgs := []string{
+		"--verbose", "create", "avd", "--force",
+		"--name", cfg.ID,
+		"--device", cfg.DeviceProfile,
+		"--package", pkg,
+		"--abi", cfg.Abi,
 	}
+	// ps16k images have a single valid avdmanager tag that varies by API level — let avdmanager auto-select it.
+	// For all other tags, pass explicitly.
+	if cfg.Tag != "google_apis_ps16k" && cfg.Tag != "google_apis_playstore_ps16k" {
+		createAVDArgs = append(createAVDArgs, "--tag", cfg.Tag)
+	}
+	createAVDArgs = append(createAVDArgs, createCustomFlags...)
+
 	phases = append(phases, []phase{
 		{
 			"Installing system image package",
@@ -179,13 +181,7 @@ func main() {
 		},
 		{
 			"Creating device",
-			command.New(avdManagerPath, append([]string{
-				"--verbose", "create", "avd", "--force",
-				"--name", cfg.ID,
-				"--device", cfg.DeviceProfile,
-				"--package", pkg,
-				"--tag", avdmanagerTag,
-				"--abi", cfg.Abi}, createCustomFlags...)...).
+			command.New(avdManagerPath, createAVDArgs...).
 				SetStdin(strings.NewReader(no)), // hitting no in case it asks for creating hw profile
 		},
 	}...)
@@ -391,12 +387,6 @@ waitLoop:
 		return startEmulator(adbClient, emulatorPath, args, runningDevices, logPath, attempt+1)
 	}
 	return serial
-}
-
-func majorAPILevel(apiLevel string) int {
-	major, _, _ := strings.Cut(apiLevel, ".")
-	n, _ := strconv.Atoi(major)
-	return n
 }
 
 func tailLines(s string, n int) string {
