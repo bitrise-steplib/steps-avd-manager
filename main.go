@@ -39,7 +39,7 @@ type config struct {
 	EmulatorChannel            string `env:"emulator_channel,opt[no update,0,1,2,3]"`
 	EmulatorBuildNumber        string `env:"emulator_build_number,required"`
 	IsHeadlessMode             bool   `env:"headless_mode,opt[yes,no]"`
-	DebugTags                  string `env:"emulator_debug_tags"`
+	HostDebugTags                  string `env:"host_debug_tags"`
 	DeviceLogcatTags                 string `env:"device_logcat_tags"`
 }
 
@@ -216,20 +216,20 @@ func main() {
 		emulatorLogPath string
 		logcatLogPath   string
 	)
-	if cfg.DebugTags != "" {
-		emulatorLogPath = filepath.Join(cfg.DeployDir, cfg.ID+"_emulator_host.log")
-		logcatLogPath = filepath.Join(cfg.DeployDir, cfg.ID+"_device_logcat.log")
-		args = append(args, "-debug", cfg.DebugTags, "-logcat-output", logcatLogPath)
+	if cfg.HostDebugTags != "" {
+		emulatorLogPath = filepath.Join(cfg.DeployDir, cfg.ID+"_host.log")
+		args = append(args, "-debug", cfg.HostDebugTags)
 	}
 	if cfg.DeviceLogcatTags != "" {
-		args = append(args, "-logcat", cfg.DeviceLogcatTags)
+		logcatLogPath = filepath.Join(cfg.DeployDir, cfg.ID+"_device_logcat.log")
+		args = append(args, "-logcat", cfg.DeviceLogcatTags, "-logcat-output", logcatLogPath)
 	}
 	args = append(args, startCustomFlags...)
 
 	serial := startEmulator(adbClient, emulatorPath, args, runningDevicesBeforeBoot, emulatorLogPath, 1)
 
 	if emulatorLogPath != "" {
-		renamed := filepath.Join(cfg.DeployDir, serial+"_emulator_host.log")
+		renamed := filepath.Join(cfg.DeployDir, serial+"_host.log")
 		if err := os.Rename(emulatorLogPath, renamed); err != nil {
 			log.Warnf("Failed to rename emulator host log: %s", err)
 		} else {

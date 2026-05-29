@@ -169,7 +169,7 @@ inputs:
     value_options:
     - "yes"
     - "no"
-- emulator_debug_tags: ""
+- host_debug_tags: ""
   opts:
     category: Debugging
     title: Emulator debug tags
@@ -217,8 +217,8 @@ outputs:
 - BITRISE_EMULATOR_HOST_LOG:
   opts:
     title: Emulator log file path
-    description: Path to the emulator process stdout/stderr log file. Only set when `emulator_debug_tags` is non-empty.
+    description: Path to the emulator process stdout/stderr log file. Only set when `host_debug_tags` is non-empty.
 - BITRISE_EMULATOR_DEVICE_LOGCAT_LOG:
   opts:
     title: Emulator logcat log file path
-    description: Path to the device-side logcat log file captured via `-logcat-output`. Only set when `emulator_debug_tags` is non-empty.
+    description: Path to the device-side logcat log file captured via `-logcat-output`. Only set when `host_debug_tags` is non-empty.
