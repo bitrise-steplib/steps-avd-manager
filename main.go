@@ -237,15 +237,8 @@ func main() {
 		emulatorLogPath string
 		logcatLogPath   string
 	)
-	// When debug is enabled, write directly to deploy dir so the file is always an artifact.
-	// Otherwise write to a temp dir — on success we delete it, on failure we move it to deploy dir.
 	if cfg.DeployDir != "" {
-		hostLogName := cfg.ID + "_" + runID + hostLogSuffix
-		if debugEnabled {
-			emulatorLogPath = filepath.Join(cfg.DeployDir, hostLogName)
-		} else {
-			emulatorLogPath = filepath.Join(os.TempDir(), hostLogName)
-		}
+		emulatorLogPath = filepath.Join(cfg.DeployDir, cfg.ID+"_"+runID+hostLogSuffix)
 	}
 	if debugEnabled {
 		args = append(args, "-debug", cfg.HostDebugTags)
@@ -257,36 +250,15 @@ func main() {
 		if logcatEnabled {
 			logcatTags = cfg.DeviceLogcatTags
 		}
-		logcatLogName := cfg.ID + "_" + runID + deviceLogcatSuffix
-		if logcatEnabled {
-			logcatLogPath = filepath.Join(cfg.DeployDir, logcatLogName)
-		} else {
-			logcatLogPath = filepath.Join(os.TempDir(), logcatLogName)
-		}
+		logcatLogPath = filepath.Join(cfg.DeployDir, cfg.ID+"_"+runID+deviceLogcatSuffix)
 		args = append(args, "-logcat", logcatTags, "-logcat-output", logcatLogPath)
 	}
 
-	// onFailure moves temp logs to the deploy dir and exports their paths before the step exits.
+	// onFailure exports log paths before the step exits; files are already in deploy dir.
 	onFailure := func() {
-		if emulatorLogPath != "" && !debugEnabled && cfg.DeployDir != "" {
-			dest := filepath.Join(cfg.DeployDir, filepath.Base(emulatorLogPath))
-			if err := os.Rename(emulatorLogPath, dest); err != nil {
-				log.Warnf("Failed to move emulator host log to deploy dir: %s", err)
-			} else {
-				emulatorLogPath = dest
-			}
-		}
 		if emulatorLogPath != "" {
 			if err := tools.ExportEnvironmentWithEnvman("BITRISE_EMULATOR_HOST_LOG", emulatorLogPath); err != nil {
 				log.Warnf("Failed to export BITRISE_EMULATOR_HOST_LOG: %s", err)
-			}
-		}
-		if logcatLogPath != "" && !logcatEnabled && cfg.DeployDir != "" {
-			dest := filepath.Join(cfg.DeployDir, filepath.Base(logcatLogPath))
-			if err := os.Rename(logcatLogPath, dest); err != nil {
-				log.Warnf("Failed to move device logcat log to deploy dir: %s", err)
-			} else {
-				logcatLogPath = dest
 			}
 		}
 		if logcatLogPath != "" {
@@ -298,9 +270,13 @@ func main() {
 
 	args = append(args, startCustomFlags...)
 
-	serial := startEmulator(adbClient, emulatorPath, args, runningDevicesBeforeBoot, emulatorLogPath, onFailure, 1)
+	serial, err := startEmulator(adbClient, emulatorPath, args, runningDevicesBeforeBoot, emulatorLogPath, 1)
+	if err != nil {
+		onFailure()
+		failf(err.Error())
+	}
 
-	// On success: rename debug-mode logs to use the serial; delete temp logs that weren't requested.
+	// On success: rename logs to use the serial. Delete logs that weren't explicitly requested.
 	if emulatorLogPath != "" {
 		if debugEnabled {
 			renamed := filepath.Join(cfg.DeployDir, serial+"_"+runID+hostLogSuffix)
@@ -311,7 +287,7 @@ func main() {
 			}
 		} else {
 			if err := os.Remove(emulatorLogPath); err != nil {
-				log.Warnf("Failed to remove temporary emulator log: %s", err)
+				log.Warnf("Failed to remove emulator host log: %s", err)
 			}
 			emulatorLogPath = ""
 		}
@@ -326,7 +302,7 @@ func main() {
 			}
 		} else {
 			if err := os.Remove(logcatLogPath); err != nil {
-				log.Warnf("Failed to remove temporary logcat log: %s", err)
+				log.Warnf("Failed to remove device logcat log: %s", err)
 			}
 			logcatLogPath = ""
 		}
@@ -374,7 +350,7 @@ func main() {
 	}
 }
 
-func startEmulator(adbClient adb.ADB, emulatorPath string, args []string, runningDevices map[string]string, logPath string, onFailure func(), attempt int) string {
+func startEmulator(adbClient adb.ADB, emulatorPath string, args []string, runningDevices map[string]string, logPath string, attempt int) (string, error) {
 	var faultBuf bytes.Buffer
 	var writer io.Writer = &faultBuf
 
@@ -403,7 +379,7 @@ func startEmulator(adbClient adb.ADB, emulatorPath string, args []string, runnin
 	// 2. A boot timeout timer
 	// 3. A ticker that periodically checks if the device has become online
 	if err := deviceStartCmd.GetCmd().Start(); err != nil {
-		failf("Failed to run device start command: %v", err)
+		return "", fmt.Errorf("failed to run device start command: %v", err)
 	}
 
 	emulatorWaitCh := make(chan error, 1)
@@ -415,12 +391,11 @@ func startEmulator(adbClient adb.ADB, emulatorPath string, args []string, runnin
 
 	deviceCheckTicker := time.NewTicker(deviceCheckInterval)
 
-	logHint := func() {
+	printLogHint := func() {
 		log.Printf("Emulator log tail:\n%s", tailLines(faultBuf.String(), 50))
 		if logPath != "" {
 			log.Printf("Full emulator log: %s", logPath)
 		}
-		onFailure()
 	}
 
 	var serial string
@@ -435,33 +410,32 @@ waitLoop:
 			} else {
 				log.Warnf("A possible cause can be the emulator process having received a KILL signal.")
 			}
-			logHint()
-			failf("Emulator exited early, see logs above.")
+			printLogHint()
+			return "", fmt.Errorf("emulator exited early, see logs above")
 		case <-timeoutTimer.C:
-			errorMsg := fmt.Sprintf("Failed to boot emulator device within %d seconds.", bootTimeout/time.Second)
-			log.Errorf(errorMsg)
-			logHint()
-			failf(errorMsg)
+			log.Errorf("Failed to boot emulator device within %d seconds.", bootTimeout/time.Second)
+			printLogHint()
+			return "", fmt.Errorf("failed to boot emulator device within %d seconds", bootTimeout/time.Second)
 		case <-deviceCheckTicker.C:
 			var err error
 			serial, err = adbClient.FindNewDevice(runningDevices)
 			if err != nil {
-				failf("Error: %s", err)
+				return "", fmt.Errorf("finding new device: %s", err)
 			} else if serial != "" {
 				break waitLoop
 			}
 			if containsAny(faultBuf.String(), faultIndicators) {
 				log.Warnf("Emulator log contains fault")
-				logHint()
+				printLogHint()
 				if err := deviceStartCmd.GetCmd().Process.Kill(); err != nil {
-					failf("Couldn't finish emulator process: %v", err)
+					return "", fmt.Errorf("couldn't finish emulator process: %v", err)
 				}
 				if attempt < maxBootAttempts {
 					log.Warnf("Trying to start emulator process again...")
 					retry = true
 					break waitLoop
 				} else {
-					failf("Failed to boot device due to faults after %d tries", maxBootAttempts)
+					return "", fmt.Errorf("failed to boot device due to faults after %d tries", maxBootAttempts)
 				}
 			}
 		}
@@ -469,9 +443,9 @@ waitLoop:
 	timeoutTimer.Stop()
 	deviceCheckTicker.Stop()
 	if retry {
-		return startEmulator(adbClient, emulatorPath, args, runningDevices, logPath, onFailure, attempt+1)
+		return startEmulator(adbClient, emulatorPath, args, runningDevices, logPath, attempt+1)
 	}
-	return serial
+	return serial, nil
 }
 
 func tailLines(s string, n int) string {
