@@ -202,7 +202,6 @@ func main() {
 
 	args := []string{
 		"@" + cfg.ID,
-		"-verbose",
 		"-show-kernel",
 		"-no-audio",
 		"-netdelay", "none",
@@ -219,16 +218,24 @@ func main() {
 	logcatEnabled := cfg.DeviceLogcatTags != "" && cfg.DeviceLogcatTags != "none"
 
 	// Detect debug/logcat flags already present in start_command_flags to avoid conflicts.
-	customHasDebug := sliceutil.IsStringInSlice("-debug", startCustomFlags)
+	customHasDebug := sliceutil.IsStringInSlice("-debug", startCustomFlags) ||
+		sliceutil.IsStringInSlice("-verbose", startCustomFlags)
 	customHasLogcat := sliceutil.IsStringInSlice("-logcat", startCustomFlags) ||
 		sliceutil.IsStringInSlice("-logcat-output", startCustomFlags)
 
-	if customHasDebug && debugEnabled {
-		failf("Conflicting flags: -debug is already set in start_command_flags and host_debug_tags is also set. Use one or the other.")
+	if customHasDebug {
+		failf("Conflicting flags: -debug or -verbose is already set in start_command_flags. Use the host_debug_tags input instead.")
 	}
 	if customHasLogcat && logcatEnabled {
 		failf("Conflicting flags: -logcat/-logcat-output is already set in start_command_flags and device_logcat_tags is also set. Use one or the other.")
 	}
+
+	// Always pass -debug; use the user-specified tags or the default when host_debug_tags is not set.
+	debugTags := "init,avd,kernel,snapshot"
+	if debugEnabled {
+		debugTags = cfg.HostDebugTags
+	}
+	args = append(args, "-debug", debugTags)
 
 	// Timestamp embedded in filenames ensures uniqueness across retries and concurrent runs.
 	runID := time.Now().Format("20060102_150405")
@@ -239,9 +246,6 @@ func main() {
 	)
 	if cfg.DeployDir != "" {
 		emulatorLogPath = filepath.Join(cfg.DeployDir, cfg.ID+"_"+runID+hostLogSuffix)
-	}
-	if debugEnabled {
-		args = append(args, "-debug", cfg.HostDebugTags)
 	}
 
 	// Capture logcat for failure diagnostics unless the user already handles it via start_command_flags.
