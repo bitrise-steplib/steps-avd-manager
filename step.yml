@@ -170,7 +170,7 @@ inputs:
     value_options:
     - "yes"
     - "no"
-- host_debug_tags:
+- host_debug_tags: none
   opts:
     category: Debugging
     title: Emulator debug tags
@@ -178,15 +178,15 @@ inputs:
     description: |-
       Comma-separated list of emulator debug tags (e.g. `init,avd,kernel` or `all`). Passed to the emulator as `-debug [tags]`.
 
-      When this input is non-empty, the emulator host process stdout/stderr is saved to `$BITRISE_DEPLOY_DIR` and its path exported as `$BITRISE_EMULATOR_HOST_LOG`. Logs are preserved even if the device never becomes reachable via `adb`.
+      When set, the emulator host process stdout/stderr is saved to `$BITRISE_DEPLOY_DIR` and its path exported as `$BITRISE_EMULATOR_HOST_LOG`. Logs are preserved even if the device never becomes reachable via `adb`.
 
-      Leave empty to disable. Run `emulator -help-debug-tags` locally to see the full list of available tags.
+      Set to `none` to disable. Run `emulator -help-debug-tags` locally to see the full list of available tags.
     is_required: false
     value_options:
-    - ""
+    - none
     - "init,avd,kernel,snapshot"
     - "all"
-- device_logcat_tags:
+- device_logcat_tags: none
   opts:
     category: Debugging
     title: Logcat filters
@@ -199,12 +199,12 @@ inputs:
 
       Example: `*:s GSM:i` — suppresses all logs except GSM at informative level.
 
-      When this input is non-empty, the device-side logcat stream is captured via `-logcat-output` to `$BITRISE_DEPLOY_DIR` and its path exported as `$BITRISE_EMULATOR_DEVICE_LOGCAT_LOG`.
+      When set, the device-side logcat stream is captured via `-logcat-output` to `$BITRISE_DEPLOY_DIR` and its path exported as `$BITRISE_EMULATOR_DEVICE_LOGCAT_LOG`.
 
-      Leave empty to disable. See `adb logcat --help` for more information.
+      Set to `none` to disable. See `adb logcat --help` for more information.
     is_required: false
     value_options:
-    - ""
+    - none
     - "*:v"
     - "*:d"
     - "*:i"

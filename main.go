@@ -219,11 +219,11 @@ func main() {
 		emulatorLogPath string
 		logcatLogPath   string
 	)
-	if cfg.HostDebugTags != "" {
+	if cfg.HostDebugTags != "" && cfg.HostDebugTags != "none" {
 		emulatorLogPath = filepath.Join(cfg.DeployDir, cfg.ID+hostLogSuffix)
 		args = append(args, "-debug", cfg.HostDebugTags)
 	}
-	if cfg.DeviceLogcatTags != "" {
+	if cfg.DeviceLogcatTags != "" && cfg.DeviceLogcatTags != "none" {
 		logcatLogPath = filepath.Join(cfg.DeployDir, cfg.ID+deviceLogcatSuffix)
 		args = append(args, "-logcat", cfg.DeviceLogcatTags, "-logcat-output", logcatLogPath)
 	}
