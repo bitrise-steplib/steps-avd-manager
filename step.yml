@@ -42,7 +42,7 @@ inputs:
 - profile: pixel
   opts:
     title: Device Profile ID
-    summary: Device profile to use when creating the virtual device.
+    summary: The profile contains parameters of the device, such as screen size and resolution.
     description: |
       The profile contains parameters of the device, such as screen size and resolution.
 
@@ -125,6 +125,7 @@ inputs:
   opts:
     category: Emulator
     title: Emulator build number
+    summary: Allows installing a specific emulator version at runtime.
     description: |-
       Allows installing a specific emulator version at runtime. The default value (`preinstalled`) will use the emulator version preinstalled on the Stack, which is updated regularly to the latest stable version.
 
@@ -173,11 +174,11 @@ inputs:
   opts:
     category: Debugging
     title: Emulator debug tags
-    summary: Comma-separated list of emulator debug tags. When set, the emulator is launched with `-debug <tags>` and log paths are exported as `$BITRISE_EMULATOR_HOST_LOG` and `$BITRISE_EMULATOR_DEVICE_LOGCAT_LOG`.
+    summary: Comma-separated list of emulator debug tags (e.g. `init,avd,kernel` or `all`). Passed to the emulator as `-debug [tags]`.
     description: |-
-      Comma-separated list of emulator debug tags (e.g. `init,avd,kernel` or `all`). Passed to the emulator as `-debug <tags>`.
+      Comma-separated list of emulator debug tags (e.g. `init,avd,kernel` or `all`). Passed to the emulator as `-debug [tags]`.
 
-      When this input is non-empty, the emulator host process stdout/stderr is saved to the path exported as `$BITRISE_EMULATOR_HOST_LOG`, and the device-side logcat stream is captured via `-logcat-output` to the path exported as `$BITRISE_EMULATOR_DEVICE_LOGCAT_LOG`. Both files are written to `$BITRISE_DEPLOY_DIR` and deployed as build artifacts. Logs are preserved even if the device never becomes reachable via `adb`.
+      When this input is non-empty, the emulator host process stdout/stderr is saved to `$BITRISE_DEPLOY_DIR` and its path exported as `$BITRISE_EMULATOR_HOST_LOG`. Logs are preserved even if the device never becomes reachable via `adb`.
 
       Leave empty to disable. Run `emulator -help-debug-tags` locally to see the full list of available tags.
     is_required: false
@@ -189,14 +190,16 @@ inputs:
   opts:
     category: Debugging
     title: Logcat filters
-    summary: Logcat filter string passed to the emulator as `-logcat <tags>`.
+    summary: Space- or comma-separated logcat filters in `componentName:logLevel` format, passed to the emulator as `-logcat [tags]`.
     description: |-
-      Space- or comma-separated logcat filters in `componentName:logLevel` format, passed to the emulator as `-logcat <tags>`.
+      Space- or comma-separated logcat filters in `componentName:logLevel` format, passed to the emulator as `-logcat [tags]`.
 
       `componentName` is either `*` (wildcard) or a component name such as `ActivityManager` or `GSM`.
       `logLevel` is one of: `v` (verbose), `d` (debug), `i` (informative), `w` (warning), `e` (error), `s` (silent).
 
       Example: `*:s GSM:i` — suppresses all logs except GSM at informative level.
+
+      When this input is non-empty, the device-side logcat stream is captured via `-logcat-output` to `$BITRISE_DEPLOY_DIR` and its path exported as `$BITRISE_EMULATOR_DEVICE_LOGCAT_LOG`.
 
       Leave empty to disable. See `adb logcat --help` for more information.
     is_required: false
@@ -221,4 +224,4 @@ outputs:
 - BITRISE_EMULATOR_DEVICE_LOGCAT_LOG:
   opts:
     title: Emulator logcat log file path
-    description: Path to the device-side logcat log file captured via `-logcat-output`. Only set when `host_debug_tags` is non-empty.
+    description: Path to the device-side logcat log file captured via `-logcat-output`. Only set when `device_logcat_tags` is non-empty.
