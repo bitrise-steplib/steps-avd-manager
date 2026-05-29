@@ -73,9 +73,9 @@ workflows:
     - _take_screenshot
     - _kill-emulator
 
-  test_emulator_start_37:
+  test_emulator_start_35:
     envs:
-    - EMU_VER: "37.0"
+    - EMU_VER: "35"
     - PROFILE: pixel_2
     - TAG: google_apis_ps16k
     - EMU_BUILD_NUMBER: preinstalled
@@ -167,18 +167,13 @@ workflows:
 
   _take_screenshot:
     steps:
-    - change-workdir:
-        inputs:
-        - path: $BITRISE_DEPLOY_DIR
     - script:
         inputs:
         - content: |
             #!/bin/bash
             set -euxo pipefail
             sleep 15
-            cd $BITRISE_DEPLOY_DIR
-            $ANDROID_HOME/platform-tools/adb -s $BITRISE_EMULATOR_SERIAL shell "screencap -p /sdcard/screen.png"
-            $ANDROID_HOME/platform-tools/adb -s $BITRISE_EMULATOR_SERIAL pull "/sdcard/screen.png" "./screen_$EMU_VER.png"
+            $ANDROID_HOME/platform-tools/adb -s $BITRISE_EMULATOR_SERIAL exec-out screencap -p > "$BITRISE_DEPLOY_DIR/screen_$EMU_VER.png"
 
   _kill-emulator:
     steps:
