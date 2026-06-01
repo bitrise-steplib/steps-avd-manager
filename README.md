@@ -55,6 +55,8 @@ You can also run this step directly with [Bitrise CLI](https://github.com/bitris
 | `emulator_build_number` | Allows installing a specific emulator version at runtime. The default value (`preinstalled`) will use the emulator version preinstalled on the Stack, which is updated regularly to the latest stable version.  See available build numbers [here](https://developer.android.com/studio/emulator_archive). You need the last segment of the download URL, for example, build number `12658423` from `emulator-linux_x64-12658423.zip`. Note: this input expects the **build number**, not the **version number**.  When this input set to a specific build number, the `emulator_channel` input should be set to `no update`. |  | `preinstalled` |
 | `emulator_channel` | Select which channel to use with `sdkmanager` to fetch *emulator* package. Available options are no update, or channels 0 (Stable), 1 (Beta), 2 (Dev), and 3 (Canary).  - `no update`: The *emulator* preinstalled on the Stack will be used. *system-image* will be updated to the latest Stable version.  To update *emulator* and *system image* to the latest available in a given channel: - `0`: Stable channel - `1`: Beta channel - `2`: Dev channel - `3`: Canary channel  When this input set to a specific channel, the `emulator_build_number` input should be set to `preinstalled`. | required | `no update` |
 | `headless_mode` | In headless mode the emulator is not launched in the foreground.  If this input is set, the emulator will not be visible but tests (even the screenshots) will run just like if the emulator ran in the foreground. | required | `yes` |
+| `host_debug_tags` | Comma-separated list of emulator debug tags (e.g. `init,avd,kernel` or `all`). Passed to the emulator as `-debug [tags]`.  When set, the emulator host process stdout/stderr is saved to `$BITRISE_DEPLOY_DIR` and its path exported as `$BITRISE_EMULATOR_HOST_LOG`. Logs are preserved even if the device never becomes reachable via `adb`.  Set to `none` to disable. Run `emulator -help-debug-tags` locally to see the full list of available tags. |  | `none` |
+| `device_logcat_tags` | Space- or comma-separated logcat filters in `componentName:logLevel` format, passed to the emulator as `-logcat [tags]`.  `componentName` is either `*` (wildcard) or a component name such as `ActivityManager` or `GSM`. `logLevel` is one of: `v` (verbose), `d` (debug), `i` (informative), `w` (warning), `e` (error), `s` (silent).  Example: `*:s GSM:i` — suppresses all logs except GSM at informative level.  When set, the device-side logcat stream is captured via `-logcat-output` to `$BITRISE_DEPLOY_DIR` and its path exported as `$BITRISE_EMULATOR_DEVICE_LOGCAT_LOG`.  Set to `none` to disable. See `adb logcat --help` for more information. |  | `none` |
 </details>
 
 <details>
@@ -63,6 +65,8 @@ You can also run this step directly with [Bitrise CLI](https://github.com/bitris
 | Environment Variable | Description |
 | --- | --- |
 | `BITRISE_EMULATOR_SERIAL` | Booted emulator serial |
+| `BITRISE_EMULATOR_HOST_LOG` | Path to the emulator process stdout/stderr log file. Only set when `host_debug_tags` is non-empty. |
+| `BITRISE_EMULATOR_DEVICE_LOGCAT_LOG` | Path to the device-side logcat log file captured via `-logcat-output`. Only set when `device_logcat_tags` is non-empty. |
 </details>
 
 ## 🙋 Contributing

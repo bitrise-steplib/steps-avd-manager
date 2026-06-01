@@ -7,11 +7,42 @@ app:
   - TEST_APP_BRANCH: main
 
 workflows:
+  test_host_debug_tags_init:
+    before_run:
+    - _set_abi
+    envs:
+    - EMU_VER: 34
+    - PROFILE: pixel
+    - TAG: google_apis
+    - EMU_BUILD_NUMBER: preinstalled
+    steps:
+    - path::./:
+        title: AVD Manager
+        inputs:
+        - api_level: $EMU_VER
+        - tag: $TAG
+        - profile: $PROFILE
+        - abi: $ABI
+        - emulator_build_number: $EMU_BUILD_NUMBER
+        - host_debug_tags: "init,avd,kernel,snapshot"
+        - device_logcat_tags: "*:w"
+    - wait-for-android-emulator: {}
+    - script:
+        is_always_run: true
+        title: Verify emulator log artifacts exist
+        inputs:
+        - content: |
+            #!/bin/bash
+            set -euxo pipefail
+            test -s "$BITRISE_EMULATOR_HOST_LOG"
+            test -s "$BITRISE_EMULATOR_DEVICE_LOGCAT_LOG"
+    after_run:
+    - _kill-emulator
+
   test_emulator_custom_build_number:
     envs:
     - EMU_VER: 34
     - PROFILE: pixel
-    - ABI: x86_64
     - TAG: google_apis
     - EMU_BUILD_NUMBER: 12325540 # 35.1.21
     after_run:
@@ -19,11 +50,11 @@ workflows:
     - _take_screenshot
     - _kill-emulator
     - _restore_emulator
+
   test_emulator_page_size_16k:
     envs:
     - EMU_VER: 36
     - PROFILE: pixel
-    - ABI: x86_64
     - TAG: google_apis_ps16k
     - EMU_BUILD_NUMBER: preinstalled
     after_run:
@@ -31,35 +62,10 @@ workflows:
     - _take_screenshot
     - _kill-emulator
 
-  test_emulator_start_28:
+  test_emulator_start_31:
     envs:
-    - EMU_VER: 28
-    - PROFILE: pixel
-    - ABI: x86
-    - TAG: google_apis
-    - EMU_BUILD_NUMBER: preinstalled
-    after_run:
-    - _start-emulator
-    - _take_screenshot
-    - _kill-emulator
-
-  test_emulator_start_29:
-    envs:
-    - EMU_VER: 29
-    - PROFILE: pixel
-    - ABI: x86
-    - TAG: google_apis
-    - EMU_BUILD_NUMBER: preinstalled
-    after_run:
-    - _start-emulator
-    - _take_screenshot
-    - _kill-emulator
-
-  test_emulator_start_30:
-    envs:
-    - EMU_VER: 30
+    - EMU_VER: 31
     - PROFILE: pixel_2
-    - ABI: x86
     - TAG: google_apis
     - EMU_BUILD_NUMBER: preinstalled
     after_run:
@@ -67,19 +73,20 @@ workflows:
     - _take_screenshot
     - _kill-emulator
 
-  test_emulator_start_32:
+  test_emulator_start_35:
     envs:
-    - EMU_VER: 32
+    - EMU_VER: "35"
     - PROFILE: pixel_2
-    - ABI: x86_64
-    - TAG: google_apis
+    - TAG: google_apis_ps16k
     - EMU_BUILD_NUMBER: preinstalled
     after_run:
     - _start-emulator
-    - _run_ui_test_and_take_screenshot
+    - _take_screenshot
     - _kill-emulator
 
   _start-emulator:
+    before_run:
+    - _set_abi
     steps:
     - path::./:
         title: Step Test
@@ -144,20 +151,29 @@ workflows:
             tesseract -l eng "$SCREENSHOT" "$OUT"
             cat "${OUT}.txt" | grep 'Hello World!'
 
+  _set_abi:
+    steps:
+    - script:
+        title: Set ABI based on OS
+        inputs:
+        - content: |
+            #!/bin/bash
+            set -ex
+            if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+              envman add --key ABI --value x86_64
+            else
+              envman add --key ABI --value arm64-v8a
+            fi
+
   _take_screenshot:
     steps:
-    - change-workdir:
-        inputs:
-        - path: $BITRISE_DEPLOY_DIR
     - script:
         inputs:
         - content: |
             #!/bin/bash
             set -euxo pipefail
             sleep 15
-            cd $BITRISE_DEPLOY_DIR
-            $ANDROID_HOME/platform-tools/adb -s $BITRISE_EMULATOR_SERIAL shell "screencap -p /sdcard/screen.png"
-            $ANDROID_HOME/platform-tools/adb -s $BITRISE_EMULATOR_SERIAL pull "/sdcard/screen.png" "./screen_$EMU_VER.png"
+            $ANDROID_HOME/platform-tools/adb -s $BITRISE_EMULATOR_SERIAL exec-out screencap -p > "$BITRISE_DEPLOY_DIR/screen_$EMU_VER.png"
 
   _kill-emulator:
     steps:

@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -26,18 +27,21 @@ import (
 )
 
 type config struct {
-	AndroidHome         string `env:"ANDROID_HOME"`
-	APILevel            int    `env:"api_level,required"`
-	Tag                 string `env:"tag,opt[google_apis,google_apis_ps16k,google_apis_playstore,google_apis_playstore_ps16k,aosp_atd,google_atd,android-wear,android-tv,default]"`
-	DeviceProfile       string `env:"profile,required"`
-	DisableAnimations   bool   `env:"disable_animations,opt[yes,no]"`
-	CreateCommandArgs   string `env:"create_command_flags"`
-	StartCommandArgs    string `env:"start_command_flags"`
-	ID                  string `env:"emulator_id,required"`
-	Abi                 string `env:"abi,opt[x86,armeabi-v7a,arm64-v8a,x86_64]"`
-	EmulatorChannel     string `env:"emulator_channel,opt[no update,0,1,2,3]"`
-	EmulatorBuildNumber string `env:"emulator_build_number,required"`
-	IsHeadlessMode      bool   `env:"headless_mode,opt[yes,no]"`
+	AndroidHome                string `env:"ANDROID_HOME"`
+	DeployDir                  string `env:"BITRISE_DEPLOY_DIR"`
+	APILevel                   string `env:"api_level,required"`
+	Tag                        string `env:"tag,opt[google_apis,google_apis_ps16k,google_apis_playstore,google_apis_playstore_ps16k,aosp_atd,google_atd,android-wear,android-tv,default]"`
+	DeviceProfile              string `env:"profile,required"`
+	DisableAnimations          bool   `env:"disable_animations,opt[yes,no]"`
+	CreateCommandArgs          string `env:"create_command_flags"`
+	StartCommandArgs           string `env:"start_command_flags"`
+	ID                         string `env:"emulator_id,required"`
+	Abi                        string `env:"abi,opt[x86,armeabi-v7a,arm64-v8a,x86_64]"`
+	EmulatorChannel            string `env:"emulator_channel,opt[no update,0,1,2,3]"`
+	EmulatorBuildNumber        string `env:"emulator_build_number,required"`
+	IsHeadlessMode             bool   `env:"headless_mode,opt[yes,no]"`
+	HostDebugTags                  string `env:"host_debug_tags"`
+	DeviceLogcatTags                 string `env:"device_logcat_tags"`
 }
 
 var (
@@ -50,6 +54,8 @@ const (
 	maxBootAttempts            = 5
 	emuChannelNoUpdate         = "no update"
 	emuBuildNumberPreinstalled = "preinstalled"
+	hostLogSuffix              = "_host.log"
+	deviceLogcatSuffix         = "_device_logcat.log"
 )
 
 func failf(msg string, args ...interface{}) {
@@ -116,7 +122,7 @@ func main() {
 		avdManagerPath = filepath.Join(cmdlineToolsPath, "avdmanager")
 		emulatorPath   = filepath.Join(cfg.AndroidHome, "emulator", "emulator")
 
-		pkg     = fmt.Sprintf("system-images;android-%d;%s;%s", cfg.APILevel, cfg.Tag, cfg.Abi)
+		pkg     = fmt.Sprintf("system-images;android-%s;%s;%s", cfg.APILevel, cfg.Tag, cfg.Abi)
 		yes, no = strings.Repeat("yes\n", 20), strings.Repeat("no\n", 20)
 	)
 
@@ -153,14 +159,20 @@ func main() {
 		)
 	}
 
-	avdmanagerTag := cfg.Tag
-	// The tag passed to avdmanager is different when using 16kb page size images. Otherwise it fails with:
-	// > Error: Invalid --tag google_apis_ps16k for the selected package. Valid tags are:
-	// > page_size_16kb
-	// > null
-	if avdmanagerTag == "google_apis_ps16k" || avdmanagerTag == "google_apis_playstore_ps16k" {
-		avdmanagerTag = "page_size_16kb"
+	createAVDArgs := []string{
+		"--verbose", "create", "avd", "--force",
+		"--name", cfg.ID,
+		"--device", cfg.DeviceProfile,
+		"--package", pkg,
+		"--abi", cfg.Abi,
 	}
+	// ps16k images have a single valid avdmanager tag that varies by API level — let avdmanager auto-select it.
+	// For all other tags, pass explicitly.
+	if cfg.Tag != "google_apis_ps16k" && cfg.Tag != "google_apis_playstore_ps16k" {
+		createAVDArgs = append(createAVDArgs, "--tag", cfg.Tag)
+	}
+	createAVDArgs = append(createAVDArgs, createCustomFlags...)
+
 	phases = append(phases, []phase{
 		{
 			"Installing system image package",
@@ -169,13 +181,7 @@ func main() {
 		},
 		{
 			"Creating device",
-			command.New(avdManagerPath, append([]string{
-				"--verbose", "create", "avd", "--force",
-				"--name", cfg.ID,
-				"--device", cfg.DeviceProfile,
-				"--package", pkg,
-				"--tag", avdmanagerTag,
-				"--abi", cfg.Abi}, createCustomFlags...)...).
+			command.New(avdManagerPath, createAVDArgs...).
 				SetStdin(strings.NewReader(no)), // hitting no in case it asks for creating hw profile
 		},
 	}...)
@@ -196,7 +202,6 @@ func main() {
 
 	args := []string{
 		"@" + cfg.ID,
-		"-verbose",
 		"-show-kernel",
 		"-no-audio",
 		"-netdelay", "none",
@@ -209,11 +214,71 @@ func main() {
 	if cfg.IsHeadlessMode {
 		args = append(args, []string{"-no-window", "-no-boot-anim"}...)
 	}
+	debugEnabled := cfg.HostDebugTags != "" && cfg.HostDebugTags != "none"
+	logcatEnabled := cfg.DeviceLogcatTags != "" && cfg.DeviceLogcatTags != "none"
+
+	// Detect debug/logcat flags already present in start_command_flags to avoid conflicts.
+	customHasDebug := sliceutil.IsStringInSlice("-debug", startCustomFlags) ||
+		sliceutil.IsStringInSlice("-verbose", startCustomFlags)
+	customHasLogcat := sliceutil.IsStringInSlice("-logcat", startCustomFlags) ||
+		sliceutil.IsStringInSlice("-logcat-output", startCustomFlags)
+
+	if customHasDebug {
+		failf("Conflicting flags: -debug or -verbose is already set in start_command_flags. Use the host_debug_tags input instead.")
+	}
+	if customHasLogcat && logcatEnabled {
+		failf("Conflicting flags: -logcat/-logcat-output is already set in start_command_flags and device_logcat_tags is also set. Use one or the other.")
+	}
+
+	// Always pass -debug; use the user-specified tags or the default when host_debug_tags is not set.
+	debugTags := "init,avd,kernel,snapshot"
+	if debugEnabled {
+		debugTags = cfg.HostDebugTags
+	}
+	args = append(args, "-debug", debugTags)
+
+	// Timestamp embedded in filenames ensures uniqueness across retries and concurrent runs.
+	runID := time.Now().Format("20060102_150405")
+
+	var (
+		emulatorLogPath string
+		logcatLogPath   string
+	)
+	if cfg.DeployDir != "" {
+		emulatorLogPath = filepath.Join(cfg.DeployDir, cfg.ID+"_"+runID+hostLogSuffix)
+	}
+
+	// Capture logcat for failure diagnostics unless the user already handles it via start_command_flags.
+	if !customHasLogcat && cfg.DeployDir != "" {
+		logcatTags := "*:w"
+		if logcatEnabled {
+			logcatTags = cfg.DeviceLogcatTags
+		}
+		logcatLogPath = filepath.Join(cfg.DeployDir, cfg.ID+"_"+runID+deviceLogcatSuffix)
+		args = append(args, "-logcat", logcatTags, "-logcat-output", logcatLogPath)
+	}
+
 	args = append(args, startCustomFlags...)
 
-	serial := startEmulator(adbClient, emulatorPath, args, runningDevicesBeforeBoot, 1)
+	serial, bootErr := startEmulator(adbClient, emulatorPath, args, runningDevicesBeforeBoot, emulatorLogPath, 1)
 
-	if cfg.DisableAnimations {
+	// On success, delete logs that weren't explicitly requested (they were captured for diagnostics only).
+	if bootErr == nil {
+		if emulatorLogPath != "" && !debugEnabled {
+			if err := os.Remove(emulatorLogPath); err != nil {
+				log.Warnf("Failed to remove emulator host log: %s", err)
+			}
+			emulatorLogPath = ""
+		}
+		if logcatLogPath != "" && !logcatEnabled {
+			if err := os.Remove(logcatLogPath); err != nil {
+				log.Warnf("Failed to remove device logcat log: %s", err)
+			}
+			logcatLogPath = ""
+		}
+	}
+
+	if bootErr == nil && cfg.DisableAnimations {
 		// We need to wait for the device to boot before we can disable animations
 		adb, err := adbmanager.New(androidSdk, cmdFactory, logger)
 		if err != nil {
@@ -231,17 +296,57 @@ func main() {
 		log.Donef("Done")
 	}
 
-	if err := tools.ExportEnvironmentWithEnvman("BITRISE_EMULATOR_SERIAL", serial); err != nil {
-		log.Warnf("Failed to export environment (BITRISE_EMULATOR_SERIAL), error: %s", err)
+	if serial != "" {
+		if err := tools.ExportEnvironmentWithEnvman("BITRISE_EMULATOR_SERIAL", serial); err != nil {
+			log.Warnf("Failed to export BITRISE_EMULATOR_SERIAL: %s", err)
+		}
+	}
+	if emulatorLogPath != "" {
+		if err := tools.ExportEnvironmentWithEnvman("BITRISE_EMULATOR_HOST_LOG", emulatorLogPath); err != nil {
+			log.Warnf("Failed to export BITRISE_EMULATOR_HOST_LOG: %s", err)
+		}
+	}
+	if logcatLogPath != "" {
+		if err := tools.ExportEnvironmentWithEnvman("BITRISE_EMULATOR_DEVICE_LOGCAT_LOG", logcatLogPath); err != nil {
+			log.Warnf("Failed to export BITRISE_EMULATOR_DEVICE_LOGCAT_LOG: %s", err)
+		}
 	}
 	log.Printf("")
 	log.Infof("Step outputs")
-	log.Printf("$BITRISE_EMULATOR_SERIAL=%s", serial)
+	if serial != "" {
+		log.Printf("$BITRISE_EMULATOR_SERIAL = %s", serial)
+	}
+	if emulatorLogPath != "" {
+		log.Printf("$BITRISE_EMULATOR_HOST_LOG = %s", emulatorLogPath)
+	}
+	if logcatLogPath != "" {
+		log.Printf("$BITRISE_EMULATOR_DEVICE_LOGCAT_LOG = %s", logcatLogPath)
+	}
+
+	if bootErr != nil {
+		failf(bootErr.Error())
+	}
 }
 
-func startEmulator(adbClient adb.ADB, emulatorPath string, args []string, runningDevices map[string]string, attempt int) string {
-	var output bytes.Buffer
-	deviceStartCmd := command.New(emulatorPath, args...).SetStdout(&output).SetStderr(&output)
+func startEmulator(adbClient adb.ADB, emulatorPath string, args []string, runningDevices map[string]string, logPath string, attempt int) (string, error) {
+	var faultBuf bytes.Buffer
+	var writer io.Writer = &faultBuf
+
+	if logPath != "" {
+		f, err := os.Create(logPath)
+		if err != nil {
+			log.Warnf("Failed to create emulator log file %s: %s", logPath, err)
+		} else {
+			defer func() {
+				if err := f.Close(); err != nil {
+					log.Warnf("Failed to close emulator log file: %s", err)
+				}
+			}()
+			writer = io.MultiWriter(f, &faultBuf)
+		}
+	}
+
+	deviceStartCmd := command.New(emulatorPath, args...).SetStdout(writer).SetStderr(writer)
 
 	log.Infof("Starting device")
 	log.Donef("$ %s", deviceStartCmd.PrintableCommandArgs())
@@ -252,7 +357,7 @@ func startEmulator(adbClient adb.ADB, emulatorPath string, args []string, runnin
 	// 2. A boot timeout timer
 	// 3. A ticker that periodically checks if the device has become online
 	if err := deviceStartCmd.GetCmd().Start(); err != nil {
-		failf("Failed to run device start command: %v", err)
+		return "", fmt.Errorf("failed to run device start command: %v", err)
 	}
 
 	emulatorWaitCh := make(chan error, 1)
@@ -263,6 +368,13 @@ func startEmulator(adbClient adb.ADB, emulatorPath string, args []string, runnin
 	timeoutTimer := time.NewTimer(bootTimeout)
 
 	deviceCheckTicker := time.NewTicker(deviceCheckInterval)
+
+	printLogHint := func() {
+		log.Printf("Emulator log tail:\n%s", tailLines(faultBuf.String(), 50))
+		if logPath != "" {
+			log.Printf("Full emulator log: %s", logPath)
+		}
+	}
 
 	var serial string
 	retry := false
@@ -276,34 +388,32 @@ waitLoop:
 			} else {
 				log.Warnf("A possible cause can be the emulator process having received a KILL signal.")
 			}
-			log.Printf("Emulator log: %s", output)
-			failf("Emulator exited early, see logs above.")
+			printLogHint()
+			return "", fmt.Errorf("emulator exited early, see logs above")
 		case <-timeoutTimer.C:
-			// Include error before and after printing the emulator log because it's so long
-			errorMsg := fmt.Sprintf("Failed to boot emulator device within %d seconds.", bootTimeout/time.Second)
-			log.Errorf(errorMsg)
-			log.Printf("Emulator log: %s", output)
-			failf(errorMsg)
+			log.Errorf("Failed to boot emulator device within %d seconds.", bootTimeout/time.Second)
+			printLogHint()
+			return "", fmt.Errorf("failed to boot emulator device within %d seconds", bootTimeout/time.Second)
 		case <-deviceCheckTicker.C:
 			var err error
 			serial, err = adbClient.FindNewDevice(runningDevices)
 			if err != nil {
-				failf("Error: %s", err)
+				return "", fmt.Errorf("finding new device: %s", err)
 			} else if serial != "" {
 				break waitLoop
 			}
-			if containsAny(output.String(), faultIndicators) {
+			if containsAny(faultBuf.String(), faultIndicators) {
 				log.Warnf("Emulator log contains fault")
-				log.Warnf("Emulator log: %s", output)
+				printLogHint()
 				if err := deviceStartCmd.GetCmd().Process.Kill(); err != nil {
-					failf("Couldn't finish emulator process: %v", err)
+					return "", fmt.Errorf("couldn't finish emulator process: %v", err)
 				}
 				if attempt < maxBootAttempts {
 					log.Warnf("Trying to start emulator process again...")
 					retry = true
 					break waitLoop
 				} else {
-					failf("Failed to boot device due to faults after %d tries", maxBootAttempts)
+					return "", fmt.Errorf("failed to boot device due to faults after %d tries", maxBootAttempts)
 				}
 			}
 		}
@@ -311,9 +421,17 @@ waitLoop:
 	timeoutTimer.Stop()
 	deviceCheckTicker.Stop()
 	if retry {
-		return startEmulator(adbClient, emulatorPath, args, runningDevices, attempt+1)
+		return startEmulator(adbClient, emulatorPath, args, runningDevices, logPath, attempt+1)
 	}
-	return serial
+	return serial, nil
+}
+
+func tailLines(s string, n int) string {
+	lines := strings.Split(s, "\n")
+	if len(lines) > n {
+		lines = lines[len(lines)-n:]
+	}
+	return strings.Join(lines, "\n")
 }
 
 func containsAny(output string, any []string) bool {
