@@ -364,7 +364,7 @@ func startEmulator(logger log.Logger, adbClient adb.ADB, emulatorPath string, ar
 	deviceStartCmd.Stderr = writer
 
 	logger.Infof("Starting device")
-	logger.Donef("$ %s", strings.Join(deviceStartCmd.Args, " "))
+	logger.Donef("$ %s", printableCommandArgs(deviceStartCmd.Args))
 
 	// The emulator command won't exit after the boot completes, so we start the command and not wait for its result.
 	// Instead, we have a loop with 3 channels:
@@ -439,6 +439,22 @@ waitLoop:
 		return startEmulator(logger, adbClient, emulatorPath, args, runningDevices, logPath, attempt+1)
 	}
 	return serial, nil
+}
+
+// printableCommandArgs mirrors the formatting of the v2 command package, which keeps its own
+// version unexported. The emulator is started via os/exec, so its log line would otherwise be
+// quoted differently from every other command the step runs.
+func printableCommandArgs(args []string) string {
+	decorated := make([]string, 0, len(args))
+	for i, arg := range args {
+		if i == 0 {
+			decorated = append(decorated, arg)
+			continue
+		}
+		decorated = append(decorated, fmt.Sprintf("\"%s\"", arg))
+	}
+
+	return strings.Join(decorated, " ")
 }
 
 func tailLines(s string, n int) string {

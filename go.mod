@@ -1,6 +1,6 @@
 module github.com/bitrise-steplib/steps-avd-manager
 
-go 1.22
+go 1.23
 
 require (
 	github.com/bitrise-io/go-android/v2 v2.0.0-alpha.17

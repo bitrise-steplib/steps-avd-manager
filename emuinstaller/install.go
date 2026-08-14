@@ -1,6 +1,7 @@
 package emuinstaller
 
 import (
+	"archive/zip"
 	"errors"
 	"fmt"
 	"io"
@@ -158,8 +159,24 @@ func (e EmuInstaller) download(buildNumber string) error {
 		return fmt.Errorf("download %s to %s: %w", url, zipPath, err)
 	}
 
-	err = unzip(zipPath, e.androidHome)
+	archive, err := zip.OpenReader(zipPath)
 	if err != nil {
+		return fmt.Errorf("open emulator archive %s: %w", zipPath, err)
+	}
+	defer archive.Close() //nolint:errcheck
+
+	// The emulator archive contains no symlinks, verified against build 12325540. CopyFS cannot
+	// restore them, so fail with a message that explains itself if a future build adds one.
+	// ziputil.UnZip (go-utils#231) handles symlinks and should replace this once released.
+	for _, file := range archive.File {
+		if file.Mode()&os.ModeSymlink != 0 {
+			return fmt.Errorf("emulator archive contains a symlink (%s), which needs ziputil.UnZip", file.Name)
+		}
+	}
+
+	// CopyFS preserves the execute bits the emulator binaries rely on, and zip.Reader's fs.FS
+	// rejects entries with traversal in their name.
+	if err := os.CopyFS(e.androidHome, archive); err != nil {
 		return fmt.Errorf("unzip emulator: %w", err)
 	}
 
