@@ -11,7 +11,6 @@ import (
 	"strconv"
 	"time"
 
-	v1command "github.com/bitrise-io/go-utils/command"
 	"github.com/bitrise-io/go-utils/v2/command"
 	"github.com/bitrise-io/go-utils/v2/log"
 	"github.com/hashicorp/go-retryablehttp"
@@ -159,7 +158,7 @@ func (e EmuInstaller) download(buildNumber string) error {
 		return fmt.Errorf("download %s to %s: %w", url, zipPath, err)
 	}
 
-	err = v1command.UnZIP(zipPath, e.androidHome)
+	err = unzip(zipPath, e.androidHome)
 	if err != nil {
 		return fmt.Errorf("unzip emulator: %w", err)
 	}

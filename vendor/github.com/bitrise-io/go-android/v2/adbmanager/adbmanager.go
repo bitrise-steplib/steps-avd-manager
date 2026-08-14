@@ -6,9 +6,9 @@ import (
 	"time"
 
 	"github.com/bitrise-io/go-android/v2/sdk"
-	"github.com/bitrise-io/go-utils/pathutil"
 	"github.com/bitrise-io/go-utils/v2/command"
 	"github.com/bitrise-io/go-utils/v2/log"
+	"github.com/bitrise-io/go-utils/v2/pathutil"
 )
 
 type Model struct {
@@ -19,7 +19,7 @@ type Model struct {
 
 func New(sdk sdk.AndroidSdkInterface, cmdFactory command.Factory, logger log.Logger) (*Model, error) {
 	binPth := filepath.Join(sdk.GetAndroidHome(), "platform-tools", "adb")
-	if exist, err := pathutil.IsPathExists(binPth); err != nil {
+	if exist, err := pathutil.NewPathChecker().IsPathExists(binPth); err != nil {
 		return nil, fmt.Errorf("failed to check if adb exist, error: %s", err)
 	} else if !exist {
 		return nil, fmt.Errorf("adb not exist at: %s", binPth)
