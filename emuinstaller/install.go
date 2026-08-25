@@ -1,7 +1,6 @@
 package emuinstaller
 
 import (
-	"archive/zip"
 	"errors"
 	"fmt"
 	"io"
@@ -14,6 +13,7 @@ import (
 
 	"github.com/bitrise-io/go-utils/v2/command"
 	"github.com/bitrise-io/go-utils/v2/log"
+	"github.com/bitrise-io/go-utils/v2/ziputil"
 	"github.com/hashicorp/go-retryablehttp"
 )
 
@@ -22,13 +22,14 @@ type EmuInstaller struct {
 	cmdFactory  command.Factory
 	logger      log.Logger
 	httpClient  *retryablehttp.Client
+	zipManager  *ziputil.ZipManager
 }
 
 const backupDir = "emulator_original"
 const outputBuildIdRegex = "\\(build_id (\\d+)\\)"
 
-func NewEmuInstaller(androidHome string, cmdFactory command.Factory, logger log.Logger, httpClient *retryablehttp.Client) EmuInstaller {
-	return EmuInstaller{androidHome: androidHome, cmdFactory: cmdFactory, logger: logger, httpClient: httpClient}
+func NewEmuInstaller(androidHome string, cmdFactory command.Factory, logger log.Logger, httpClient *retryablehttp.Client, zipManager *ziputil.ZipManager) EmuInstaller {
+	return EmuInstaller{androidHome: androidHome, cmdFactory: cmdFactory, logger: logger, httpClient: httpClient, zipManager: zipManager}
 }
 
 func (e EmuInstaller) Install(buildNumber string) error {
@@ -159,24 +160,7 @@ func (e EmuInstaller) download(buildNumber string) error {
 		return fmt.Errorf("download %s to %s: %w", url, zipPath, err)
 	}
 
-	archive, err := zip.OpenReader(zipPath)
-	if err != nil {
-		return fmt.Errorf("open emulator archive %s: %w", zipPath, err)
-	}
-	defer archive.Close() //nolint:errcheck
-
-	// The emulator archive contains no symlinks, verified against build 12325540. CopyFS cannot
-	// restore them, so fail with a message that explains itself if a future build adds one.
-	// ziputil.UnZip (go-utils#231) handles symlinks and should replace this once released.
-	for _, file := range archive.File {
-		if file.Mode()&os.ModeSymlink != 0 {
-			return fmt.Errorf("emulator archive contains a symlink (%s), which needs ziputil.UnZip", file.Name)
-		}
-	}
-
-	// CopyFS preserves the execute bits the emulator binaries rely on, and zip.Reader's fs.FS
-	// rejects entries with traversal in their name.
-	if err := os.CopyFS(e.androidHome, archive); err != nil {
+	if err := e.zipManager.UnZip(zipPath, e.androidHome); err != nil {
 		return fmt.Errorf("unzip emulator: %w", err)
 	}
 

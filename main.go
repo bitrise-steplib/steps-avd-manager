@@ -21,6 +21,7 @@ import (
 	"github.com/bitrise-io/go-utils/v2/pathutil"
 	"github.com/bitrise-io/go-utils/v2/retryhttp"
 	"github.com/bitrise-io/go-utils/v2/system"
+	"github.com/bitrise-io/go-utils/v2/ziputil"
 	"github.com/bitrise-steplib/steps-avd-manager/adb"
 	"github.com/bitrise-steplib/steps-avd-manager/emuinstaller"
 	"github.com/kballard/go-shellquote"
@@ -103,7 +104,8 @@ func main() {
 
 	// Initialize Android SDK
 	logger.Infof("Initialize Android SDK")
-	androidSdk, err := sdk.New(cfg.AndroidHome, pathutil.NewPathChecker())
+	pathChecker := pathutil.NewPathChecker()
+	androidSdk, err := sdk.New(cfg.AndroidHome, pathChecker)
 	if err != nil {
 		failf(logger, "Failed to initialize Android SDK: %s", err)
 	}
@@ -140,7 +142,7 @@ func main() {
 
 	if cfg.EmulatorBuildNumber != emuBuildNumberPreinstalled {
 		httpClient := retryhttp.NewClient(logger)
-		emuInstaller := emuinstaller.NewEmuInstaller(cfg.AndroidHome, cmdFactory, logger, httpClient)
+		emuInstaller := emuinstaller.NewEmuInstaller(cfg.AndroidHome, cmdFactory, logger, httpClient, ziputil.NewZipManager(pathChecker))
 		if err := emuInstaller.Install(cfg.EmulatorBuildNumber); err != nil {
 			failf(logger, "Failed to install emulator build %s: %s", cfg.EmulatorBuildNumber, err)
 		}
