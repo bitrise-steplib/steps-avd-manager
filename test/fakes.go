@@ -2,6 +2,7 @@ package test
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/bitrise-io/go-utils/v2/command"
@@ -64,5 +65,13 @@ func (c fakeCommand) Start() error {
 }
 
 func (c fakeCommand) Wait() error {
+	return nil
+}
+
+func (c fakeCommand) Signal(_ os.Signal) error {
+	return nil
+}
+
+func (c fakeCommand) Kill() error {
 	return nil
 }

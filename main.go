@@ -2,10 +2,10 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -273,7 +273,7 @@ func main() {
 
 	args = append(args, startCustomFlags...)
 
-	serial, bootErr := startEmulator(logger, adbClient, emulatorPath, args, runningDevicesBeforeBoot, emulatorLogPath, 1)
+	serial, bootErr := startEmulator(logger, cmdFactory, adbClient, emulatorPath, args, runningDevicesBeforeBoot, emulatorLogPath, 1)
 
 	// On success, delete logs that weren't explicitly requested (they were captured for diagnostics only).
 	if bootErr == nil {
@@ -341,7 +341,7 @@ func main() {
 	}
 }
 
-func startEmulator(logger log.Logger, adbClient adb.ADB, emulatorPath string, args []string, runningDevices map[string]string, logPath string, attempt int) (string, error) {
+func startEmulator(logger log.Logger, cmdFactory command.Factory, adbClient adb.ADB, emulatorPath string, args []string, runningDevices map[string]string, logPath string, attempt int) (string, error) {
 	var faultBuf bytes.Buffer
 	var writer io.Writer = &faultBuf
 
@@ -359,14 +359,10 @@ func startEmulator(logger log.Logger, adbClient adb.ADB, emulatorPath string, ar
 		}
 	}
 
-	// The emulator is the one command we don't run through the v2 command factory: killing it on a
-	// detected fault needs the underlying process handle, which command.Command doesn't expose.
-	deviceStartCmd := exec.Command(emulatorPath, args...) //nolint:gosec // the emulator path and flags come from step inputs
-	deviceStartCmd.Stdout = writer
-	deviceStartCmd.Stderr = writer
+	deviceStartCmd := cmdFactory.Create(emulatorPath, args, &command.Opts{Stdout: writer, Stderr: writer})
 
 	logger.Infof("Starting device")
-	logger.Donef("$ %s", printableCommandArgs(deviceStartCmd.Args))
+	logger.Donef("$ %s", deviceStartCmd.PrintableCommandArgs())
 
 	// The emulator command won't exit after the boot completes, so we start the command and not wait for its result.
 	// Instead, we have a loop with 3 channels:
@@ -422,7 +418,7 @@ waitLoop:
 			if containsAny(faultBuf.String(), faultIndicators) {
 				logger.Warnf("Emulator log contains fault")
 				printLogHint()
-				if err := deviceStartCmd.Process.Kill(); err != nil {
+				if err := deviceStartCmd.Kill(); err != nil && !errors.Is(err, os.ErrProcessDone) {
 					return "", fmt.Errorf("couldn't finish emulator process: %v", err)
 				}
 				if attempt < maxBootAttempts {
@@ -438,25 +434,9 @@ waitLoop:
 	timeoutTimer.Stop()
 	deviceCheckTicker.Stop()
 	if retry {
-		return startEmulator(logger, adbClient, emulatorPath, args, runningDevices, logPath, attempt+1)
+		return startEmulator(logger, cmdFactory, adbClient, emulatorPath, args, runningDevices, logPath, attempt+1)
 	}
 	return serial, nil
-}
-
-// printableCommandArgs mirrors the formatting of the v2 command package, which keeps its own
-// version unexported. The emulator is started via os/exec, so its log line would otherwise be
-// quoted differently from every other command the step runs.
-func printableCommandArgs(args []string) string {
-	decorated := make([]string, 0, len(args))
-	for i, arg := range args {
-		if i == 0 {
-			decorated = append(decorated, arg)
-			continue
-		}
-		decorated = append(decorated, fmt.Sprintf("\"%s\"", arg))
-	}
-
-	return strings.Join(decorated, " ")
 }
 
 func tailLines(s string, n int) string {
