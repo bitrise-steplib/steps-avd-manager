@@ -89,7 +89,7 @@ func main() {
 	envRepo := env.NewRepository()
 	logger := log.NewLogger()
 	cmdFactory := command.NewFactory(envRepo)
-	exporter := export.NewExporter(cmdFactory, export.NewFileManager())
+	exporter := export.NewDefaultExporter(cmdFactory)
 
 	var cfg config
 	if err := stepconf.NewInputParser(envRepo).Parse(&cfg); err != nil {
