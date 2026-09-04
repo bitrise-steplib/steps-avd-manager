@@ -11,9 +11,9 @@ import (
 	"strconv"
 	"time"
 
-	v1command "github.com/bitrise-io/go-utils/command"
 	"github.com/bitrise-io/go-utils/v2/command"
 	"github.com/bitrise-io/go-utils/v2/log"
+	"github.com/bitrise-io/go-utils/v2/ziputil"
 	"github.com/hashicorp/go-retryablehttp"
 )
 
@@ -22,13 +22,14 @@ type EmuInstaller struct {
 	cmdFactory  command.Factory
 	logger      log.Logger
 	httpClient  *retryablehttp.Client
+	zipManager  *ziputil.ZipManager
 }
 
 const backupDir = "emulator_original"
 const outputBuildIdRegex = "\\(build_id (\\d+)\\)"
 
-func NewEmuInstaller(androidHome string, cmdFactory command.Factory, logger log.Logger, httpClient *retryablehttp.Client) EmuInstaller {
-	return EmuInstaller{androidHome: androidHome, cmdFactory: cmdFactory, logger: logger, httpClient: httpClient}
+func NewEmuInstaller(androidHome string, cmdFactory command.Factory, logger log.Logger, httpClient *retryablehttp.Client, zipManager *ziputil.ZipManager) EmuInstaller {
+	return EmuInstaller{androidHome: androidHome, cmdFactory: cmdFactory, logger: logger, httpClient: httpClient, zipManager: zipManager}
 }
 
 func (e EmuInstaller) Install(buildNumber string) error {
@@ -159,8 +160,7 @@ func (e EmuInstaller) download(buildNumber string) error {
 		return fmt.Errorf("download %s to %s: %w", url, zipPath, err)
 	}
 
-	err = v1command.UnZIP(zipPath, e.androidHome)
-	if err != nil {
+	if err := e.zipManager.UnZip(zipPath, e.androidHome); err != nil {
 		return fmt.Errorf("unzip emulator: %w", err)
 	}
 

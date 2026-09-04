@@ -5,9 +5,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/bitrise-steplib/steps-avd-manager/test"
 	"github.com/bitrise-io/go-utils/v2/command"
 	"github.com/bitrise-io/go-utils/v2/env"
+	"github.com/bitrise-steplib/steps-avd-manager/test"
 	"github.com/stretchr/testify/require"
 )
 
