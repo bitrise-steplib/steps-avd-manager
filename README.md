@@ -9,7 +9,7 @@ Create and boot an Android emulator used for device testing
 
 Run instrumented and UI tests on a virtual Android device. Once some basic inputs are set, the Step checks the requirements, downloads the selected system image before creating and starting the emulator.
 
-**Warning:** This Step is not yet supported on Apple Silicon (M1) machines. If you cannot find a solution to this error, try running this Workflow on an Intel-based machine type.
+**Warning:** Android emulators can't run on Apple Silicon build machines. Until nested virtualization becomes supported, you should run emulator tests on Linux machines.
 
 ### Configuring the Step
 1. Add the **AVD Manager** Step to your Workflow as one of the first Steps in your Workflow.
@@ -17,11 +17,9 @@ Run instrumented and UI tests on a virtual Android device. Once some basic input
 3. Set the **Android API Level**. The new virtual device will run with the specified Android version.
 4. Select an **OS Tag** to have the required toolset on the new virtual device.
 
-Some system images are pre-installed on the virtual machines. In this case the step won't have to spend time downloading the requested image. To check the list of pre-installed images for each stack, visit the [system reports](https://github.com/bitrise-io/bitrise.io/tree/master/system_reports).
+Some system images are pre-installed on the virtual machines. In this case the step won't have to spend time downloading the requested image. To check the list of pre-installed images for each stack, visit the [system reports](https://stacks.bitrise.io).
 
-### Troubleshooting
-The emulator needs some time to boot up. The earlier you place the Step in your Workflow, the more tasks, such as cloning or caching, you can complete in your Workflow before the emulator starts working.
-We recommend that you also add **Wait for Android emulator** Step to your Workflow as it acts as a shield preventing the AVD Manager to kick in too early. Make sure you add the **Wait for Android emulator** Step BEFORE the Step with which you want to use the **AVD Manager**.
+By default, the Step waits for the emulator to boot up and disables system animations in order to make tests faster and more reliable. If you want to disable these, set the **Disable animations** input to `no`. In this case, make sure to add the [Wait for Android emulator Step](https://github.com/bitrise-steplib/steps-wait-for-android-emulator) to the right part of your workflow.
 
 ### Useful links
 - [Getting started with Android apps](https://devcenter.bitrise.io/getting-started/getting-started-with-android-apps/)
@@ -35,7 +33,7 @@ We recommend that you also add **Wait for Android emulator** Step to your Workfl
 
 ## 🧩 Get started
 
-Add this step directly to your workflow in the [Bitrise Workflow Editor](https://devcenter.bitrise.io/steps-and-workflows/steps-and-workflows-index/).
+Add this step directly to your workflow in the [Bitrise Workflow Editor](https://docs.bitrise.io/en/bitrise-ci/workflows-and-pipelines/steps/adding-steps-to-a-workflow.html).
 
 You can also run this step directly with [Bitrise CLI](https://github.com/bitrise-io/bitrise).
 
@@ -47,14 +45,18 @@ You can also run this step directly with [Bitrise CLI](https://github.com/bitris
 | Key | Description | Flags | Default |
 | --- | --- | --- | --- |
 | `profile` | The profile contains parameters of the device, such as screen size and resolution.  To see the complete list of available profiles use the `avdmanager list device` command locally and use the `id` value for this input.  | required | `pixel` |
-| `api_level` | The device will run with the specified version of android. | required | `26` |
+| `api_level` | The device will run with the specified system image version. | required | `26` |
 | `tag` | Select OS tag to have the required toolset on the device. | required | `google_apis` |
 | `abi` | Select which ABI to use running the emulator. Availability depends on API level. Please use `sdkmanager --list` command to see the available ABIs. | required | `x86` |
+| `disable_animations` | Disable animations on the emulator in order to make tests faster and more stable.  Note: when this input is `yes`, the step will pause and wait for the device to boot up.  Animations can be enabled/disabled from the test code too, so if your tests do need animations, set this step input to `no` and control the settings yourself. | required | `yes` |
 | `emulator_id` | Set the device's ID. (This will be the name under $HOME/.android/avd/) | required | `emulator` |
-| `create_command_flags` | Flags used when running the command to create the emulator. |  | `--sdcard 512M` |
+| `create_command_flags` | Flags used when running the command to create the emulator. |  | `--sdcard 2048M` |
 | `start_command_flags` | Flags used when running the command to start the emulator. |  | `-camera-back none -camera-front none` |
-| `emulator_channel` | Select which channel to use with `sdkmanager` to fetch *emulator* package. Available options are no update, or channels 0 (Stable), 1 (Beta), 2 (Dev), and 3 (Canary).  - `no update`: The *emulator* preinstalled on the Stack will be used. *system-image* will be updated to the latest Stable version.  To update *emulator* and *system image* to the latest available in a given channel: - `0`: Stable channel - `1`: Beta channel - `2`: Dev channel - `3`: Canary channel | required | `no update` |
+| `emulator_build_number` | Allows installing a specific emulator version at runtime. The default value (`preinstalled`) will use the emulator version preinstalled on the Stack, which is updated regularly to the latest stable version.  See available build numbers [here](https://developer.android.com/studio/emulator_archive). You need the last segment of the download URL, for example, build number `12658423` from `emulator-linux_x64-12658423.zip`. Note: this input expects the **build number**, not the **version number**.  When this input set to a specific build number, the `emulator_channel` input should be set to `no update`. |  | `preinstalled` |
+| `emulator_channel` | Select which channel to use with `sdkmanager` to fetch *emulator* package. Available options are no update, or channels 0 (Stable), 1 (Beta), 2 (Dev), and 3 (Canary).  - `no update`: The *emulator* preinstalled on the Stack will be used. *system-image* will be updated to the latest Stable version.  To update *emulator* and *system image* to the latest available in a given channel: - `0`: Stable channel - `1`: Beta channel - `2`: Dev channel - `3`: Canary channel  When this input set to a specific channel, the `emulator_build_number` input should be set to `preinstalled`. | required | `no update` |
 | `headless_mode` | In headless mode the emulator is not launched in the foreground.  If this input is set, the emulator will not be visible but tests (even the screenshots) will run just like if the emulator ran in the foreground. | required | `yes` |
+| `host_debug_tags` | Comma-separated list of emulator debug tags (e.g. `init,avd,kernel` or `all`). Passed to the emulator as `-debug [tags]`.  When set, the emulator host process stdout/stderr is saved to `$BITRISE_DEPLOY_DIR` and its path exported as `$BITRISE_EMULATOR_HOST_LOG`. Logs are preserved even if the device never becomes reachable via `adb`.  Set to `none` to disable. Run `emulator -help-debug-tags` locally to see the full list of available tags. |  | `none` |
+| `device_logcat_tags` | Space- or comma-separated logcat filters in `componentName:logLevel` format, passed to the emulator as `-logcat [tags]`.  `componentName` is either `*` (wildcard) or a component name such as `ActivityManager` or `GSM`. `logLevel` is one of: `v` (verbose), `d` (debug), `i` (informative), `w` (warning), `e` (error), `s` (silent).  Example: `*:s GSM:i` — suppresses all logs except GSM at informative level.  When set, the device-side logcat stream is captured via `-logcat-output` to `$BITRISE_DEPLOY_DIR` and its path exported as `$BITRISE_EMULATOR_DEVICE_LOGCAT_LOG`.  Set to `none` to disable. See `adb logcat --help` for more information. |  | `none` |
 </details>
 
 <details>
@@ -63,15 +65,16 @@ You can also run this step directly with [Bitrise CLI](https://github.com/bitris
 | Environment Variable | Description |
 | --- | --- |
 | `BITRISE_EMULATOR_SERIAL` | Booted emulator serial |
+| `BITRISE_EMULATOR_HOST_LOG` | Path to the emulator process stdout/stderr log file. Only set when `host_debug_tags` is non-empty. |
+| `BITRISE_EMULATOR_DEVICE_LOGCAT_LOG` | Path to the device-side logcat log file captured via `-logcat-output`. Only set when `device_logcat_tags` is non-empty. |
 </details>
 
 ## 🙋 Contributing
 
 We welcome [pull requests](https://github.com/bitrise-steplib/steps-avd-manager/pulls) and [issues](https://github.com/bitrise-steplib/steps-avd-manager/issues) against this repository.
 
-For pull requests, work on your changes in a forked repository and use the Bitrise CLI to [run step tests locally](https://devcenter.bitrise.io/bitrise-cli/run-your-first-build/).
+For pull requests, work on your changes in a forked repository and use the Bitrise CLI to [run step tests locally](https://docs.bitrise.io/en/bitrise-ci/bitrise-cli/running-your-first-local-build-with-the-cli.html).
 
 Learn more about developing steps:
 
-- [Create your own step](https://devcenter.bitrise.io/contributors/create-your-own-step/)
-- [Testing your Step](https://devcenter.bitrise.io/contributors/testing-and-versioning-your-steps/)
+- [Create your own step](https://docs.bitrise.io/en/bitrise-ci/workflows-and-pipelines/developing-your-own-bitrise-step/developing-a-new-step.html)
